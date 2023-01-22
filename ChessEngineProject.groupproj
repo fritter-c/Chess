@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{76F5A7D0-D355-4A91-BA2D-31104339F309}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="ChessEngine.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="comps\ChessComponents.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="ChessEngine">
+        <MSBuild Projects="ChessEngine.dproj"/>
+    </Target>
+    <Target Name="ChessEngine:Clean">
+        <MSBuild Projects="ChessEngine.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ChessEngine:Make">
+        <MSBuild Projects="ChessEngine.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="ChessComponents">
+        <MSBuild Projects="comps\ChessComponents.dproj"/>
+    </Target>
+    <Target Name="ChessComponents:Clean">
+        <MSBuild Projects="comps\ChessComponents.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ChessComponents:Make">
+        <MSBuild Projects="comps\ChessComponents.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="ChessEngine;ChessComponents"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="ChessEngine:Clean;ChessComponents:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="ChessEngine:Make;ChessComponents:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
