@@ -10,6 +10,8 @@ uses
   ChessBoard in 'comps\ChessBoard.pas',
   ChessPieces in 'source\ChessPieces.pas';
 
+{MainForm}
+
 {$R *.res}
 
 begin

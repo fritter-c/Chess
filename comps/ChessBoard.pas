@@ -295,32 +295,15 @@ end;
 
 procedure TChessBoard.PaintPieces;
 var
-  X             : Integer;
-  Y             : Integer;
   I             : Integer;
-  nSquareHeight : Integer;
-  nSquareWidth  : Integer;
   Point         : TPoint;
 begin
   if FUseD2D then
   begin
-    X := 0;
-    Y := 0;
-    nSquareHeight := Height div 8;
-    nSquareWidth  := Width div 8;
     for I := 1 to 32 do
     begin
       Point := FMap[FPieces[I].Position];
       FD2DCanvas.Draw(Point.X, Point.Y, FPieces[I]);
-      if I mod 8 <> 0 then
-      begin
-        X := X + nSquareWidth;
-      end
-      else
-      begin
-        X := 0;
-        Y := Y + nSquareHeight;
-      end;
     end;
 
   end;
@@ -331,7 +314,6 @@ var
   nIndex : Integer;
   bWhite : Boolean;
   nPos   : Integer;
-  Piece  : TChessPiece;
 begin
   FPieces[1] := TKing.Create(True);
   FPieces[2] := TKing.Create(False);
@@ -394,14 +376,11 @@ procedure TChessBoard.MapCoordinates;
 var
   I             : Integer;
   nSquareHeight : Integer;
-  nSquareWidth  : Integer;
   X             : Integer;
   Y             : Integer;
-  Key           : TChessCoordinate;
 begin
   FMap.Clear;
   nSquareHeight := Height div 8;
-  nSquareWidth  := Width div 8;
   X := 0;
   Y := Height - nSquareHeight;
 

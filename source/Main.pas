@@ -14,16 +14,14 @@ uses
   Vcl.Dialogs,
   Vcl.ExtCtrls,
   ChessBoard,
-  ChessPieces, Vcl.StdCtrls;
+  Vcl.StdCtrls;
 type
   TMainForm = class(TForm)
     pnl_Board : TPanel;
     pnl_Moves : TPanel;
-    cbBoard   : TChessBoard;
     pnl_Status: TPanel;
     btnNewGame: TButton;
-    procedure cbBoardMouseDown(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Integer);
+    cbBoard: TChessBoard;
     procedure btnNewGameClick(Sender: TObject);
   private
 
@@ -42,12 +40,6 @@ implementation
 procedure TMainForm.btnNewGameClick(Sender: TObject);
 begin
   cbBoard.Reset;
-end;
-
-procedure TMainForm.cbBoardMouseDown(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Integer);
-begin
-  //do something
 end;
 
 constructor TMainForm.Create(AOwner : TComponent);

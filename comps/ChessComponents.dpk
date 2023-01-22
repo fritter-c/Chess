@@ -1,6 +1,7 @@
 package ChessComponents;
 
 {$R *.res}
+{$R *.dres}
 {$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
 {$ALIGN 8}
 {$ASSERTIONS ON}
@@ -29,7 +30,8 @@ package ChessComponents;
 
 requires
   rtl,
-  vcl;
+  vcl,
+  vclimg;
 
 contains
   ChessBoard in 'ChessBoard.pas',

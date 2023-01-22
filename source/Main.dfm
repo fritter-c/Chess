@@ -49,11 +49,8 @@ object MainForm: TMainForm
       Align = alClient
       Caption = 'cbBoard'
       UseDockManager = False
-      DoubleBuffered = True
       ParentBackground = False
-      ParentDoubleBuffered = False
       TabOrder = 0
-      OnMouseDown = cbBoardMouseDown
     end
   end
   object pnl_Moves: TPanel
