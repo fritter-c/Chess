@@ -20,18 +20,19 @@ type
     FPosition   : TChessCoordinate;
     FWhite      : Boolean;
     FInitialPos : TChessCoordinate;
+    FCaptured   : Boolean;
 
     procedure SetInitialPosition(APos : TChessCoordinate);
   public
     constructor Create(bWhite : Boolean); virtual;
     function    CanMove(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; virtual; abstract;
-    function    Move(Coordinate: TChessCoordinate): Boolean; virtual;
+    function    Move(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; virtual;
     procedure   Reset; virtual;
 
     property Position   : TChessCoordinate read FPosition   write FPosition;
     property White      : Boolean          read FWhite      write FWhite;
     property InitialPos : TChessCoordinate read FInitialPos write SetInitialPosition;
-
+    property Captured   : Boolean          read FCaptured   write FCaptured;
   end;
 
   TKnight = class(TChessPiece)
@@ -70,7 +71,7 @@ type
   public
     constructor Create(bWhite : Boolean); override;
     function CanMove(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
-    function Move(Coordinate: TChessCoordinate): Boolean; override;
+    function Move(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean; override;
     procedure Reset; override;
 
     property FirstMove : Boolean read FFirstMove write FFirstMove;
@@ -82,16 +83,17 @@ type
 implementation
 
 //ChessPiece//
-function TChessPiece.Move(Coordinate: TChessCoordinate): Boolean;
+function TChessPiece.Move(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
 begin
-  Result := CanMove(Coordinate);
+  Result := CanMove(Coordinate, bCapture);
   if Result then
     FPosition := Coordinate;
 end;
 
 constructor TChessPiece.Create(bWhite : Boolean);
 begin
-  FWhite := bWhite;
+  FWhite    := bWhite;
+  FCaptured := False;
   inherited Create;
 end;
 
@@ -104,6 +106,7 @@ end;
 procedure TChessPiece.Reset;
 begin
   FPosition := FInitialPos;
+  FCaptured := False;
 end;
 //ChessPiece//
 
@@ -205,6 +208,7 @@ end;
 
 function TPawn.CanMove(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
 begin
+ if not bCapture then
  if(FFirstMove) then
  begin
    if FWhite
@@ -216,10 +220,16 @@ begin
    if FWhite
      then Result := Integer(Coordinate) = Integer(FPosition) + 1
      else Result := Integer(Coordinate) = Integer(FPosition) - 1;
+ end
+ else
+ begin
+   if FWhite
+     then Result := (Integer(Coordinate) = Integer(FPosition) - 7) or (Integer(Coordinate) = Integer(FPosition) + 9)
+     else Result := (Integer(Coordinate) = Integer(FPosition) + 7) or (Integer(Coordinate) = Integer(FPosition) - 9);
  end;
 end;
 
-function TPawn.Move(Coordinate: TChessCoordinate): Boolean;
+function TPawn.Move(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
 begin
   Result := inherited;
   FFirstMove := False;

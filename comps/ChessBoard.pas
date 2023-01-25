@@ -17,17 +17,22 @@ type
   TChessPoint = record
     Point : TPoint;
     Piece : TChessPiece;
-    Coord : TChessCoordinate;
   end;
+  PChessPoint = ^TChessPoint;
   TChessBoard = class(TCustomControl)
   private
     FOnPaint    : TNotifyEvent;
     FUseD2D     : Boolean;
     FD2DCanvas  : TDirect2DCanvas;
     FPieces     : array[1..32] of TChessPiece;
+    FBoard      : array[0..8] of array[0..8] of TChessPoint;
+    FBoardMap   : TDictionary<TChessCoordinate, PChessPoint>;
     FMap        : TDictionary<TChessCoordinate, TPoint>;
     FDragging   : Boolean;
     FDragPiece  : TChessPiece;
+    FWhiteTurn  : Boolean;
+    FMoves      : Integer;
+    FFirstMove  : Boolean;
 
     function CreateD2DCanvas : Boolean;
 
@@ -40,7 +45,12 @@ type
 
     procedure CreateChessPieces;
     procedure MapCoordinates;
-    function  MapFromPoint(X, Y : Integer; var Coordinate : TChessCoordinate) : Boolean;
+    procedure MapBoard;
+    function  MapFromPoint(const X, Y : Integer; var Coordinate : TChessCoordinate) : Boolean;
+    function  GetPiece(const Position : TChessCoordinate; var ChessPiece : TChessPiece) : Boolean;
+    function  CheckMove(const A, B : TChessCoordinate; ChessPiece : TChessPiece) : Boolean;
+    function  CheckObstacles(const A, B : TChessCoordinate) : Boolean;
+    procedure UpdateBoard(const A, B : TChessCoordinate; const Piece : TChessPiece);
 
   protected
     procedure CreateWnd; override;
@@ -145,8 +155,13 @@ begin
   inherited Create(AOwner);
   FD2DCanvas := nil;
   FDragPiece := nil;
-  FMap := TDictionary<TChessCoordinate, TPoint>.Create;
-  FDragging := False;
+  FMap       := TDictionary<TChessCoordinate, TPoint>.Create;
+  FBoardMap  := TDictionary<TChessCoordinate, PChessPoint>.Create;
+  FDragging  := False;
+  FWhiteTurn := True;
+  FMoves     := 0;
+  FFirstMove := True;
+
   CreateChessPieces;
 end;
 
@@ -232,6 +247,7 @@ begin
     ID2D1HwndRenderTarget(FD2DCanvas.RenderTarget).Resize(Size);
   inherited;
   MapCoordinates;
+  MapBoard;
 end;
 
 function TChessBoard.GetOSCanvas: TCustomCanvas;
@@ -303,7 +319,8 @@ begin
     for I := 1 to 32 do
     begin
       Point := FMap[FPieces[I].Position];
-      FD2DCanvas.Draw(Point.X, Point.Y, FPieces[I]);
+      if not FPieces[I].Captured then
+        FD2DCanvas.Draw(Point.X, Point.Y, FPieces[I]);
     end;
 
   end;
@@ -337,7 +354,7 @@ begin
   FPieces[7].InitialPos := h1;
   FPieces[8].InitialPos := h8;
 
-  FPieces[9] := TBishop.Create(True);
+  FPieces[9]  := TBishop.Create(True);
   FPieces[10] := TBishop.Create(False);
   FPieces[11] := TBishop.Create(True);
   FPieces[12] := TBishop.Create(False);
@@ -348,9 +365,9 @@ begin
   FPieces[12].InitialPos := f8;
 
   FPieces[13] := TKnight.Create(True);
-  FPieces[14]:= TKnight.Create(False);
+  FPieces[14] := TKnight.Create(False);
   FPieces[15] := TKnight.Create(True);
-  FPieces[16]:= TKnight.Create(False);
+  FPieces[16] := TKnight.Create(False);
 
   FPieces[13].InitialPos := b1;
   FPieces[14].InitialPos := b8;
@@ -399,7 +416,74 @@ begin
   end;
 end;
 
-function TChessBoard.MapFromPoint(X: Integer; Y: Integer; var Coordinate : TChessCoordinate): Boolean;
+procedure TChessBoard.MapBoard;
+var
+  I : Integer;
+  X : TChessPoint;
+  P : TChessPiece;
+  Px: PChessPoint;
+  K : TChessCoordinate;
+begin
+  for K in FBoardMap.Keys do
+  Dispose(FBoardMap[K]);
+
+  FBoardMap.Clear;
+  for I := 1 to 64 do
+  begin
+    X.Piece := nil;
+
+    for P in FPieces do
+    if P.Position = TChessCoordinate(I) then
+    begin
+      X.Piece := P;
+      Break;
+    end;
+
+    New(Px);
+
+    Px^ := X;
+    X.Point := FMap[TChessCoordinate(I)];
+    FBoardMap.Add(TChessCoordinate(I), pX);
+  end;
+end;
+
+function TChessBoard.GetPiece(const Position : TChessCoordinate; var ChessPiece : TChessPiece) : Boolean;
+var
+  X : PChessPoint;
+begin
+  Result := False;
+  ChessPiece := nil;
+  if (FBoardMap.TryGetValue(Position, X)) then
+  begin
+    ChessPiece := X.Piece;
+    Result := X.Piece <> nil;
+  end;
+end;
+
+function TChessBoard.CheckMove(const A, B : TChessCoordinate; ChessPiece : TChessPiece) : Boolean;
+var
+  Piece : TChessPiece;
+begin
+  Result := True;
+  if not (ChessPiece is TKnight) then
+  begin
+    Result := CheckObstacles(A,B);
+  end;
+
+  if GetPiece(B, Piece) then
+  begin
+    Result := Piece.White <> ChessPiece.White;
+
+    if Result then
+      Piece.Captured := True;
+  end;
+end;
+
+function TChessBoard.CheckObstacles(const A, B : TChessCoordinate) : Boolean;
+begin
+  Result := True;
+end;
+function TChessBoard.MapFromPoint(const X: Integer; const Y: Integer; var Coordinate : TChessCoordinate): Boolean;
 var
   nSquareHeight : Integer;
   nSquareWidth  : Integer;
@@ -427,16 +511,49 @@ begin
 
 end;
 
+procedure TChessBoard.UpdateBoard(const A, B : TChessCoordinate;const Piece : TChessPiece);
+var
+  X : PChessPoint;
+begin
+  if FBoardMap.TryGetValue(A, X) then
+  begin
+    X.Piece := nil;
+  end;
+  if FBoardMap.TryGetValue(B, X) then
+  begin
+    X.Piece := Piece;
+  end;
+end;
+
 procedure TChessBoard.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   Coordinate : TChessCoordinate;
+  Origin     : TChessCoordinate;
+  Piece      : TChessPiece;
+  bCapture   : Boolean;
 begin
   if FDragging and Assigned(FDragPiece) then
   begin
+    bCapture := False;
+    Origin := FDragPiece.Position;
     if MapFromPoint(X, Y, Coordinate) then
     begin
-      if FDragPiece.Move(Coordinate) then
-        Invalidate;
+      if GetPiece(Coordinate, Piece) then
+        bCapture := True;
+
+      if (FWhiteTurn xor (not FDragPiece.White)) and
+          FDragPiece.CanMove(Coordinate, bCapture) then
+      begin
+        if CheckMove(FDragPiece.Position, Coordinate, FDragPiece) and
+           FDragPiece.Move(Coordinate, bCapture)  then
+        begin
+          UpdateBoard(Origin, FDragPiece.Position, FDragPiece);
+          FWhiteTurn := not FWhiteTurn;
+          Inc(FMoves);
+          FFirstMove := False;
+          Invalidate;
+        end;
+      end;
     end;
   end;
   FDragging  := False;
@@ -451,19 +568,15 @@ var
 begin
   if MapFromPoint(X,Y,Coordinate) then
   begin
-    for Piece in FPieces do
+    if GetPiece(Coordinate, Piece) then
     begin
-      if Piece.Position = Coordinate then
-      begin
-        FDragging := True;
-        FDragPiece := Piece;
-        break
-      end
-      else
-      begin
-        FDragging  := False;
-        FDragPiece := nil;
-      end;
+      FDragging := True;
+      FDragPiece := Piece;
+    end
+    else
+    begin
+      FDragging  := False;
+      FDragPiece := nil;
     end;
   end
   else
@@ -481,6 +594,10 @@ var
 begin
   for Piece in FPieces do
     Piece.Reset;
+  MapBoard;
+  FWhiteTurn := True;
+  FFirstMove := True;
+  FMoves := 0;
   Invalidate;
 end;
 
