@@ -19,6 +19,9 @@ type
     Piece : TChessPiece;
   end;
   PChessPoint = ^TChessPoint;
+
+  TSpecialSquares = set of TChessCoordinate;
+
   TChessBoard = class(TCustomControl)
   private
     FOnPaint    : TNotifyEvent;
@@ -42,6 +45,8 @@ type
     procedure SetAcceleratedD2D(const Value : Boolean);
     function  GetGDICanvas : TCanvas;
     function  GetOSCanvas  : TCustomCanvas;
+    function  CanCastle(Piece : TChessPiece; Long : Boolean) : Boolean;
+    function  SquareAttacked (Square : TChessCoordinate; ByWhite : Boolean) : Boolean;
 
     procedure CreateChessPieces;
     procedure MapCoordinates;
@@ -531,17 +536,86 @@ var
   Origin     : TChessCoordinate;
   Piece      : TChessPiece;
   bCapture   : Boolean;
+  bDone      : Boolean;
 begin
   if FDragging and Assigned(FDragPiece) then
   begin
     bCapture := False;
+    bDone  := False;
     Origin := FDragPiece.Position;
     if MapFromPoint(X, Y, Coordinate) then
     begin
       if GetPiece(Coordinate, Piece) then
         bCapture := True;
 
-      if (FWhiteTurn xor (not FDragPiece.White)) and
+      if (FDragPiece is TKing) and (not FDragPiece.Moved) then
+      begin
+        if FWhiteTurn then
+        begin
+          if Coordinate = c1 then
+          begin
+            var Rook : TChessPiece;
+            if GetPiece(a1, Rook) and not Rook.Moved and CanCastle(FDragPiece, True) then
+            begin
+              (Rook as TRook).LongCastle;
+              (FDragPiece as TKing).LongCastle;
+               bDone := True;
+               FWhiteTurn := not FWhiteTurn;
+
+               UpdateBoard(FDragPiece.InitialPos, FDragPiece.Position, FDragPiece);
+               UpdateBoard(a1, Rook.Position, Rook);
+            end;
+          end
+          else if Coordinate = g1 then
+          begin
+            var Rook : TChessPiece;
+            if GetPiece(h1, Rook) and not Rook.Moved and CanCastle(FDragPiece, False) then
+            begin
+              (Rook as TRook).ShortCastle;
+              (FDragPiece as TKing).ShortCastle;
+               bDone := True;
+               FWhiteTurn := not FWhiteTurn;
+
+               UpdateBoard(FDragPiece.InitialPos, FDragPiece.Position, FDragPiece);
+               UpdateBoard(h1, Rook.Position, Rook);
+            end;
+          end;
+        end
+        else
+        begin
+          if Coordinate = c8 then
+          begin
+            var Rook : TChessPiece;
+            if GetPiece(a8, Rook) and not Rook.Moved and CanCastle(FDragPiece, True) then
+            begin
+              (Rook as TRook).LongCastle;
+              (FDragPiece as TKing).LongCastle;
+               bDone := True;
+               FWhiteTurn := not FWhiteTurn;
+
+               UpdateBoard(FDragPiece.InitialPos, FDragPiece.Position, FDragPiece);
+               UpdateBoard(a8, Rook.Position, Rook);
+            end;
+          end
+          else if Coordinate = g8 then
+          begin
+            var Rook : TChessPiece;
+            if GetPiece(h8, Rook) and not Rook.Moved and CanCastle(FDragPiece, False) then
+            begin
+              (Rook as TRook).ShortCastle;
+              (FDragPiece as TKing).ShortCastle;
+               bDone := True;
+               FWhiteTurn := not FWhiteTurn;
+
+               UpdateBoard(FDragPiece.InitialPos, FDragPiece.Position, FDragPiece);
+               UpdateBoard(a8, Rook.Position, Rook);
+            end;
+          end;
+        end;
+
+      end;
+
+      if (not bDone) and (FWhiteTurn xor (not FDragPiece.White)) and
           FDragPiece.CanMove(Coordinate, bCapture) then
       begin
         if CheckMove(FDragPiece.Position, Coordinate, FDragPiece) and
@@ -551,13 +625,14 @@ begin
           FWhiteTurn := not FWhiteTurn;
           Inc(FMoves);
           FFirstMove := False;
-          Invalidate;
+
         end;
       end;
     end;
   end;
   FDragging  := False;
   FDragPiece := nil;
+  Invalidate;
   inherited;
 end;
 
@@ -584,7 +659,6 @@ begin
     FDragging  := False;
     FDragPiece := nil;
   end;
-
   inherited;
 end;
 
@@ -601,6 +675,76 @@ begin
   Invalidate;
 end;
 
+function TChessBoard.CanCastle(Piece : TChessPiece; Long : Boolean) : Boolean;
+var
+  Point      : PChessPoint;
+  Coordinate : TChessCoordinate;
+  WhiteL     : TSpecialSquares;
+  WhiteS     : TSpecialSquares;
+  BlackL     : TSpecialSquares;
+  BlackS     : TSpecialSquares;
+begin
+  Result := True;
+
+  WhiteL  := [b1, c1, d1];
+  WhiteS  := [f1, g1];
+  BlackL  := [b8, c8, d8];
+  BlackS  := [f8, g8];
+
+  if (Piece is TKing) then
+  begin
+    if Piece.White then
+    begin
+      if Long then
+      begin
+        for var I in WhiteL do
+        begin
+          if FBoardMap.TryGetValue(I,Point) then
+            Result := Result and (Point.Piece = nil);
+
+          Result := SquareAttacked(I, False);
+        end;
+      end
+      else begin
+        for var I in WhiteS do
+        begin
+          if FBoardMap.TryGetValue(I,Point) then
+            Result := Result and (Point.Piece = nil);
+
+          Result := SquareAttacked(I, False);
+        end;
+      end;
+    end
+    else begin
+      if Long then
+      begin
+        for var I in BlackL do
+        begin
+          if FBoardMap.TryGetValue(I,Point) then
+            Result := Result and (Point.Piece = nil);
+
+          Result := SquareAttacked(I, True);
+        end;
+      end
+      else begin
+        for var I in BlackS do
+        begin
+          if FBoardMap.TryGetValue(I,Point) then
+            Result := Result and (Point.Piece = nil);
+
+          Result := SquareAttacked(I, True);
+        end;
+      end;
+    end;
+  end;
+end;
+
+function TChessBoard.SquareAttacked (Square : TChessCoordinate; ByWhite : Boolean) : Boolean;
+var
+  Coordinate : TChessCoordinate;
+begin
+  Result := True;
+end;
 function MapFromRowColumn(Row : Integer; Column : Integer) : TChessCoordinate;
 begin
   Result := TChessCoordinate(Row + 1 + Column * 8);

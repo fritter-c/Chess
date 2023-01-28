@@ -15,12 +15,14 @@ type
                       f1 = 41, f2 = 42, f3 = 43, f4 = 44, f5 = 45, f6 = 46, f7 = 47, f8 = 48,
                       g1 = 49, g2 = 50, g3 = 51, g4 = 52, g5 = 53, g6 = 54, g7 = 55, g8 = 56,
                       h1 = 57, h2 = 58, h3 = 59, h4 = 60, h5 = 61, h6 = 62, h7 = 63, h8 = 64);
+
   TChessPiece = class(TPngImage)
   protected
     FPosition   : TChessCoordinate;
     FWhite      : Boolean;
     FInitialPos : TChessCoordinate;
     FCaptured   : Boolean;
+    FMoved      : Boolean;
 
     procedure SetInitialPosition(APos : TChessCoordinate);
   public
@@ -33,6 +35,7 @@ type
     property White      : Boolean          read FWhite      write FWhite;
     property InitialPos : TChessCoordinate read FInitialPos write SetInitialPosition;
     property Captured   : Boolean          read FCaptured   write FCaptured;
+    property Moved      : Boolean          read FMoved;
   end;
 
   TKnight = class(TChessPiece)
@@ -51,12 +54,16 @@ type
   public
     constructor Create(bWhite : Boolean); override;
     function CanMove(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
+    procedure LongCastle;
+    procedure ShortCastle;
   end;
 
   TRook = class(TChessPiece)
   public
     constructor Create(bWhite : Boolean); override;
     function CanMove(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
+    procedure LongCastle;
+    procedure ShortCastle;
   end;
 
   TQueen = class(TChessPiece)
@@ -87,13 +94,17 @@ function TChessPiece.Move(Coordinate: TChessCoordinate; bCapture : Boolean): Boo
 begin
   Result := CanMove(Coordinate, bCapture);
   if Result then
+  begin
     FPosition := Coordinate;
+    FMoved    := True;
+  end;
 end;
 
 constructor TChessPiece.Create(bWhite : Boolean);
 begin
   FWhite    := bWhite;
   FCaptured := False;
+  FMoved    := False;
   inherited Create;
 end;
 
@@ -107,6 +118,7 @@ procedure TChessPiece.Reset;
 begin
   FPosition := FInitialPos;
   FCaptured := False;
+  FMoved    := False;
 end;
 //ChessPiece//
 
@@ -144,6 +156,22 @@ begin
                                     Integer(FPosition) - 8,
                                     Integer(FPosition) - 7,
                                     Integer(FPosition) - 1];
+end;
+
+procedure TKing.LongCastle;
+begin
+  if FWhite
+  then FPosition := c1
+  else FPosition := c8;
+  FMoved := True;
+end;
+
+procedure TKing.ShortCastle;
+begin
+  if FWhite
+  then FPosition := g1
+  else FPosition := g8;
+  FMoved := True;
 end;
 //King//
 
@@ -193,6 +221,22 @@ end;
 function TRook.CanMove(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
 begin
   Result := IsOnSameColumn(FPosition, Coordinate) or IsOnSameRow(FPosition, Coordinate);
+end;
+
+procedure TRook.LongCastle;
+begin
+  if FWhite
+  then FPosition := d1
+  else FPosition := d8;
+  FMoved := True;
+end;
+
+procedure TRook.ShortCastle;
+begin
+  if FWhite
+  then FPosition := f1
+  else FPosition := f8;
+  FMoved := True;
 end;
 //Rook//
 
