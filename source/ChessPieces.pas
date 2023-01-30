@@ -4,17 +4,20 @@ interface
 
 uses
   Graphics,
+  Types,
   Vcl.Imaging.pngimage;
 
 type
-  TChessCoordinate = (a1 = 1,  a2 = 2,  a3 = 3,  a4 = 4,  a5 = 5,  a6 = 6,  a7 = 7,  a8 = 8,
-                      b1 = 9,  b2 = 10, b3 = 11, b4 = 12, b5 = 13, b6 = 14, b7 = 15, b8 = 16,
-                      c1 = 17, c2 = 18, c3 = 19, c4 = 20, c5 = 21, c6 = 22, c7 = 23, c8 = 24,
-                      d1 = 25, d2 = 26, d3 = 27, d4 = 28, d5 = 29, d6 = 30, d7 = 31, d8 = 32,
-                      e1 = 33, e2 = 34, e3 = 35, e4 = 36, e5 = 37, e6 = 38, e7 = 39, e8 = 40,
-                      f1 = 41, f2 = 42, f3 = 43, f4 = 44, f5 = 45, f6 = 46, f7 = 47, f8 = 48,
-                      g1 = 49, g2 = 50, g3 = 51, g4 = 52, g5 = 53, g6 = 54, g7 = 55, g8 = 56,
-                      h1 = 57, h2 = 58, h3 = 59, h4 = 60, h5 = 61, h6 = 62, h7 = 63, h8 = 64);
+  TChessCoordinate = (a1 = 1, a2 = 9,  a3 = 17, a4 = 25, a5 = 33, a6 = 41, a7 = 49, a8 = 57,
+                      b1 = 2, b2 = 10, b3 = 18, b4 = 26, b5 = 34, b6 = 42, b7 = 50, b8 = 58,
+                      c1 = 3, c2 = 11, c3 = 19, c4 = 27, c5 = 35, c6 = 43, c7 = 51, c8 = 59,
+                      d1 = 4, d2 = 12, d3 = 20, d4 = 28, d5 = 36, d6 = 44, d7 = 52, d8 = 60,
+                      e1 = 5, e2 = 13, e3 = 21, e4 = 29, e5 = 37, e6 = 45, e7 = 53, e8 = 61,
+                      f1 = 6, f2 = 14, f3 = 22, f4 = 30, f5 = 38, f6 = 46, f7 = 54, f8 = 62,
+                      g1 = 7, g2 = 15, g3 = 23, g4 = 31, g5 = 39, g6 = 47, g7 = 55, g8 = 63,
+                      h1 = 8, h2 = 16, h3 = 24, h4 = 32, h5 = 40, h6 = 48, h7 = 56, h8 = 64);
+
+  TSpecialSquares = set of TChessCoordinate;
 
   TChessPiece = class(TPngImage)
   protected
@@ -23,6 +26,8 @@ type
     FInitialPos : TChessCoordinate;
     FCaptured   : Boolean;
     FMoved      : Boolean;
+    FDragPos    : TPoint;
+    FDragging   : Boolean;
 
     procedure SetInitialPosition(APos : TChessCoordinate);
   public
@@ -36,6 +41,10 @@ type
     property InitialPos : TChessCoordinate read FInitialPos write SetInitialPosition;
     property Captured   : Boolean          read FCaptured   write FCaptured;
     property Moved      : Boolean          read FMoved;
+    property DragPos    : TPoint           read FDragPos    write FDragPos;
+    property Dragging   : Boolean          read FDragging   write FDragging;
+    property X          : Integer          read FDragPos.X  write FDragPos.X;
+    property Y          : Integer          read FDragPos.Y  write FDragPos.Y;
   end;
 
   TKnight = class(TChessPiece)
@@ -87,8 +96,23 @@ type
   function IsOnSameRow     (const A : TChessCoordinate; const B : TChessCoordinate) : Boolean; inline;
   function IsOnSameColumn  (const A : TChessCoordinate; const B : TChessCoordinate) : Boolean; inline;
   function IsOnSameDiagonal(const A : TChessCoordinate; const B : TChessCoordinate) : Boolean; inline;
-implementation
+  function GetRow          (const A : TChessCoordinate) : Integer; inline;
+  function GetColumn       (const A : TChessCoordinate) : Integer; inline;
+const
+  TChessBoundaries : TSpecialSquares = [a1, b1, c1, d1, e1, f1, g1, h1, h2, h3, h4, h5, h6, h7, h8,
+                                        g8, f8, e8, d8, c8, b8, a8, a7, a6, a5, a4, a3, a2];
+  TChessCorners    : TSpecialSquares = [a1, h1, h8, a8];
 
+  TChessAColumn    : TSpecialSquares = [a1, a2, a3, a4, a5, a6, a7, a8];
+  TChessBColumn    : TSpecialSquares = [b1, b2, b3, b4, b5, b6, b7, b8];
+  TChessCColumn    : TSpecialSquares = [c1, c2, c3, c4, c5, c6, c7, c8];
+  TChessDColumn    : TSpecialSquares = [d1, d2, d3, d4, d5, d6, d7, d8];
+  TChessEColumn    : TSpecialSquares = [e1, e2, e3, e4, e5, e6, e7, e8];
+  TChessFColumn    : TSpecialSquares = [f1, f2, f3, f4, f5, f6, f7, f8];
+  TChessGColumn    : TSpecialSquares = [g1, g2, g3, g4, g5, g6, g7, g8];
+  TChessHColumn    : TSpecialSquares = [h1, h2, h3, h4, h5, h6, h7, h8];
+
+implementation
 //ChessPiece//
 function TChessPiece.Move(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
 begin
@@ -105,6 +129,10 @@ begin
   FWhite    := bWhite;
   FCaptured := False;
   FMoved    := False;
+
+  FDragPos.X := -1;
+  FDragPos.Y := -1;
+  FDragging := False;
   inherited Create;
 end;
 
@@ -147,15 +175,17 @@ begin
 end;
 
 function TKing.CanMove(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
+var
+  ARow, AColumn : Integer;
+  BRow, BColumn : Integer;
 begin
-  Result := Integer(Coordinate) in [Integer(FPosition) + 1,
-                                    Integer(FPosition) + 9,
-                                    Integer(FPosition) + 8,
-                                    Integer(FPosition) + 7,
-                                    Integer(FPosition) - 9,
-                                    Integer(FPosition) - 8,
-                                    Integer(FPosition) - 7,
-                                    Integer(FPosition) - 1];
+  ARow    := GetRow(Coordinate);
+  AColumn := GetColumn(Coordinate);
+
+  BRow    := GetRow(FPosition);
+  BColumn := GetColumn(FPosition);
+
+  Result := (Abs(ARow - BRow) <= 1) and (Abs(AColumn - BColumn) <= 1);
 end;
 
 procedure TKing.LongCastle;
@@ -186,10 +216,17 @@ end;
 
 function TKnight.CanMove(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
 var
-  nDist : Integer;
+  ARow, AColumn : Integer;
+  BRow, BColumn : Integer;
 begin
-  nDist := Abs(Integer(FPosition) - Integer(Coordinate));
-  Result := (not (IsOnSameColumn(FPosition, Coordinate))) and ((nDist = 6) or (nDist = 10) or (nDist = 15) or (nDist = 17));
+  ARow    := GetRow(Coordinate);
+  AColumn := GetColumn(Coordinate);
+
+  BRow    := GetRow(FPosition);
+  BColumn := GetColumn(FPosition);
+
+  Result := (Abs(ARow - BRow) = 2) and (Abs(AColumn - BColumn) = 1) or
+            (Abs(ARow - BRow) = 1) and (Abs(AColumn - BColumn) = 2)
 end;
 //Knight//
 
@@ -256,20 +293,20 @@ begin
  if(FFirstMove) then
  begin
    if FWhite
-     then Result := Integer(Coordinate) in [Integer(FPosition) + 1, Integer(FPosition) + 2]
-     else Result := Integer(Coordinate) in [Integer(FPosition) - 1, Integer(FPosition) - 2];
+     then Result := Integer(Coordinate) in [Integer(FPosition) + 8, Integer(FPosition) + 16]
+     else Result := Integer(Coordinate) in [Integer(FPosition) - 8, Integer(FPosition) - 16];
  end
  else
  begin
    if FWhite
-     then Result := Integer(Coordinate) = Integer(FPosition) + 1
-     else Result := Integer(Coordinate) = Integer(FPosition) - 1;
+     then Result := Integer(Coordinate) = Integer(FPosition) + 8
+     else Result := Integer(Coordinate) = Integer(FPosition) - 8;
  end
  else
  begin
    if FWhite
-     then Result := (Integer(Coordinate) = Integer(FPosition) - 7) or (Integer(Coordinate) = Integer(FPosition) + 9)
-     else Result := (Integer(Coordinate) = Integer(FPosition) + 7) or (Integer(Coordinate) = Integer(FPosition) - 9);
+     then Result := (Integer(Coordinate) = Integer(FPosition) + 7) or (Integer(Coordinate) = Integer(FPosition) + 9)
+     else Result := (Integer(Coordinate) = Integer(FPosition) - 7) or (Integer(Coordinate) = Integer(FPosition) - 9);
  end;
 end;
 
@@ -288,44 +325,103 @@ end;
 
 //Functions//
 function IsOnSameColumn(const A : TChessCoordinate; const B : TChessCoordinate) : Boolean;
-var
-  nCoord : Integer;
 begin
-  nCoord := Integer(A);
-  if (nCoord <= 8) then
-    nCoord := 1
-  else if (nCoord <= 16) then
-    nCoord := 9
-  else if (nCoord <= 24) then
-    nCoord := 17
-  else if (nCoord <= 32) then
-    nCoord := 25
-  else if (nCoord <= 40) then
-    nCoord := 33
-  else if (nCoord <= 48) then
-    nCoord := 41
-  else if (nCoord <= 56) then
-    nCoord := 49
-  else if (nCoord <= 64) then
-    nCoord := 57;
-
-  Result := (Integer(B) >= nCoord) and (Integer(B) <= nCoord + 7);
+  Result := GetColumn(B) = GetColumn(A);
 end;
 
 function IsOnSameRow(const A : TChessCoordinate; const B : TChessCoordinate) : Boolean;
-var
-  nCoord : Integer;
 begin
-  nCoord := Abs(Integer(A) - Integer(B));
-  Result := (nCoord mod 8 = 0);
+  Result := GetRow(B) = GetRow(A);
 end;
 
 function IsOnSameDiagonal(const A : TChessCoordinate; const B : TChessCoordinate) : Boolean;
 var
-  nCoord : Integer;
+  ColA, RowA : Integer;
+  ColB, RowB : Integer;
 begin
-  nCoord := Abs(Integer(A) - Integer(B));
-  Result := (nCoord mod 9 = 0) or (nCoord mod 7 = 0)
+  ColA := GetColumn(A);
+  RowA := GetRow(A);
+
+  ColB := GetColumn(B);
+  RowB := GetRow(B);
+
+  Result := Abs(ColA - ColB) = Abs(RowA - RowB);
+end;
+function GetRow (const A : TChessCoordinate) : Integer; inline;
+begin
+  case A of
+    a1,b1,c1,d1,
+    e1,f1,g1,h1 : Result := 1;
+
+    a2,b2,c2,d2,
+    e2,f2,g2,h2 : Result := 2;
+
+    a3,b3,c3,d3,
+    e3,f3,g3,h3 : Result := 3;
+
+    a4,b4,c4,d4,
+    e4,f4,g4,h4 : Result := 4;
+
+    a5,b5,c5,d5,
+    e5,f5,g5,h5 : Result := 5;
+
+    a6,b6,c6,d6,
+    e6,f6,g6,h6 : Result := 6;
+
+    a7,b7,c7,d7,
+    e7,f7,g7,h7 : Result := 7;
+  else
+    Result := 8;
+  end;
+end;
+function GetColumn (const A : TChessCoordinate) : Integer; inline;
+begin
+  case A of
+    a1,a2,a3,a4,
+    a5,a6,a7,a8 : Result := 1;
+
+    b1,b2,b3,b4,
+    b5,b6,b7,b8 : Result := 2;
+
+    c1,c2,c3,c4,
+    c5,c6,c7,c8 : Result := 3;
+
+    d1,d2,d3,d4,
+    d5,d6,d7,d8 : Result := 4;
+
+    e1,e2,e3,e4,
+    e5,e6,e7,e8 : Result := 5;
+
+    f1,f2,f3,f4,
+    f5,f6,f7,f8 : Result := 6;
+
+    g1,g2,g3,g4,
+    g5,g6,g7,g8 : Result := 7;
+  else
+    Result := 8;
+  end;
+end;
+function GetDiagonals (const A : TChessCoordinate; var LDiagonal : TSpecialSquares; var RDiagonal : TSpecialSquares) : Boolean;
+var
+  Coordinate : Integer;
+begin
+  Coordinate := Integer(A);
+  if (Coordinate >= 1) and (Coordinate <= 64) then
+  begin
+    repeat
+      RDiagonal := RDiagonal + [TChessCoordinate(Coordinate)];
+      Inc(Coordinate, 9);
+    until (Coordinate > 64);
+
+    repeat
+      LDiagonal := LDiagonal + [TChessCoordinate(Coordinate)];
+      Inc(Coordinate, 7);
+    until (Coordinate > 64);
+
+    Result := True;
+  end
+  else
+    Result := False;
 end;
 //Functions//
 end.

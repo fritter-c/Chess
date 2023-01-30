@@ -20,7 +20,6 @@ object MainForm: TMainForm
     Height = 41
     Align = alTop
     TabOrder = 0
-    ExplicitWidth = 985
     object btnNewGame: TButton
       Left = 32
       Top = 8
@@ -49,17 +48,22 @@ object MainForm: TMainForm
     object cbBoard: TChessBoard
       Left = 1
       Top = 1
-      Width = 796
-      Height = 796
-      Align = alClient
+      Width = 792
+      Height = 792
+      Align = alCustom
       BevelEdges = []
       BevelInner = bvNone
       BevelOuter = bvNone
       Caption = 'cbBoard'
+      Constraints.MaxHeight = 792
+      Constraints.MaxWidth = 792
+      Constraints.MinHeight = 792
+      Constraints.MinWidth = 792
       UseDockManager = False
+      DoubleBuffered = True
       ParentBackground = False
+      ParentDoubleBuffered = False
       TabOrder = 0
-      ExplicitHeight = 798
     end
   end
   object pnl_Moves: TPanel
@@ -70,6 +74,5 @@ object MainForm: TMainForm
     Align = alLeft
     Caption = 'pnl_Moves'
     TabOrder = 2
-    ExplicitHeight = 800
   end
 end
