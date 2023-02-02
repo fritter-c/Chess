@@ -14,7 +14,7 @@ uses
   Vcl.Dialogs,
   Vcl.ExtCtrls,
   ChessBoard,
-  Vcl.StdCtrls;
+  Vcl.StdCtrls, Vcl.Buttons;
 type
   TMainForm = class(TForm)
     pnl_Board : TPanel;
@@ -22,9 +22,12 @@ type
     pnl_Status: TPanel;
     btnNewGame: TButton;
     cbBoard: TChessBoard;
+    lblStatus: TLabel;
+    btnFlip: TButton;
     procedure btnNewGameClick(Sender: TObject);
+    procedure btnFlipClick(Sender: TObject);
   private
-
+    procedure OnGameChanged(Status : TGameState);
   public
     constructor Create(AOwner: TComponent); override;
 
@@ -37,14 +40,24 @@ implementation
 
 
 {$R *.dfm}
+constructor TMainForm.Create(AOwner : TComponent);
+begin
+  inherited Create(AOwner);
+  cbBoard.OnGameChanged := OnGameChanged;
+end;
+
+procedure TMainForm.btnFlipClick(Sender: TObject);
+begin
+  cbBoard.Flip;
+end;
+
 procedure TMainForm.btnNewGameClick(Sender: TObject);
 begin
   cbBoard.Reset;
 end;
 
-constructor TMainForm.Create(AOwner : TComponent);
+procedure TMainForm.OnGameChanged(Status : TGameState);
 begin
-  inherited Create(AOwner);
+  lblStatus.Caption := Status.ToString;
 end;
-
 end.

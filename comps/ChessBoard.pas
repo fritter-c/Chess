@@ -14,28 +14,43 @@ uses
   Direct2D;
 
 type
-  TGameState = (gsNone, gsWhiteInCheck, gsBlackInCheck, gsWhiteWins, gsBlackWins, gsDraw);
-  TWinCause  = (wsNone, gsOnTime, gsOnResign, gsOnMate);
-  TDrawCause = (dsNone, dsInsufficientMaterial, dsDrawAgreement, dsStaleMate, dsRepetition);
+  TGameState = (gsNone,
+                gsWhiteInCheck,
+                gsBlackInCheck,
+                gsWhiteWinsOnResign,
+                gsWhiteWinsOnMate,
+                gsWhiteWinsOnTime,
+                gsBlackWinsOnResign,
+                gsBlackWinsOnMate,
+                gsBlackWinsOnTime,
+                gsDrawInsufficientMaterial,
+                gsDrawAgreement,
+                gsDrawStaleMate,
+                gsDrawRepetition);
+  TGameStateHelper = record helper for TGameState
+  function ToString : string;
+  end;
 
   TGameChanged = procedure (State : TGameState) of object;
   TChessBoard = class(TCustomControl)
   private
-    FOnPaint    : TNotifyEvent;
-    FUseD2D     : Boolean;
-    FD2DCanvas  : TDirect2DCanvas;
-    FPieces     : array[1..32] of TChessPiece;
-    FBoardMap   : TDictionary<TChessCoordinate, TChessPiece>;
-    FMap        : TDictionary<TChessCoordinate, TPoint>;
-    FDragging   : Boolean;
-    FDragPiece  : TChessPiece;
-    FWhiteTurn  : Boolean;
-    FMoves      : Integer;
-    FFirstMove  : Boolean;
-    FState      : TGameState;
-    FWhiteKing  : TChessPiece;
-    FBlackKing  : TChessPiece;
-    FGameChange : TGameChanged;
+    FOnPaint        : TNotifyEvent;
+    FUseD2D         : Boolean;
+    FD2DCanvas      : TDirect2DCanvas;
+    FPieces         : array[1..32] of TChessPiece;
+    FBoardMap       : TDictionary<TChessCoordinate, TChessPiece>;
+    FMap            : TDictionary<TChessCoordinate, TPoint>;
+    FDragging       : Boolean;
+    FDragPiece      : TChessPiece;
+    FWhiteTurn      : Boolean;
+    FMoves          : Integer;
+    FFirstMove      : Boolean;
+    FState          : TGameState;
+    FWhiteKing      : TChessPiece;
+    FBlackKing      : TChessPiece;
+    FGameChange     : TGameChanged;
+    FAvailableMoves : TList<TChessCoordinate>;
+    FFlipped        : Boolean;
 
     function CreateD2DCanvas : Boolean;
 
@@ -53,11 +68,15 @@ type
     procedure MapBoard;
     function  MapFromPoint(const X, Y : Integer; var Coordinate : TChessCoordinate) : Boolean;
     function  GetPiece    (const Position : TChessCoordinate; var ChessPiece : TChessPiece) : Boolean;
-    function  CheckMove   (const A, B : TChessCoordinate; ChessPiece : TChessPiece) : Boolean;
+    function  CheckMove   (const A, B : TChessCoordinate; ChessPiece : TChessPiece;
+                           var ACapture : TChessPiece; bJustPeek : Boolean = False) : Boolean;
     function  CheckObstacles(const A, B : TChessCoordinate; bWhite : Boolean) : Boolean;
     procedure UpdateBoard   (const A, B : TChessCoordinate; const Piece : TChessPiece);
     procedure CheckKings;
-
+    function  Castles(const A : TChessCoordinate; Piece : TChessPiece) : Boolean;
+    function  KingInCheck(bWhite : Boolean) : Boolean;
+    function  GetAvailableMoves(Piece : TChessPiece) : Boolean;
+    function  CheckForMate(bWhite : Boolean) : Boolean;
   protected
     procedure CreateWnd; override;
     procedure Paint; override;
@@ -76,7 +95,9 @@ type
     property GDICanvas   : TCanvas         read GetGDICanvas;
     property D2DCanvas   : TDirect2DCanvas read FD2DCanvas;
 
-    property OnPaint : TNotifyEvent read FOnPaint write FOnPaint;
+    property OnPaint       : TNotifyEvent read FOnPaint write FOnPaint;
+    property OnGameChanged : TGameChanged read FGameChange write FGameChange;
+    procedure Flip;
   published
     property Align;
     property Anchors;
@@ -179,6 +200,8 @@ begin
   FMoves     := 0;
   FFirstMove := True;
   FState     := gsNone;
+  FFlipped   := False;
+  FAvailableMoves := TList<TChessCoordinate>.Create;
   CreateChessPieces;
 end;
 
@@ -283,13 +306,21 @@ var
   rectSquare    : TRect;
   I             : Integer;
   clLastColor   : TColor;
-  KingPoint     : TPoint;
   SquarePoint   : TPoint;
 begin
   if FUseD2D then
   begin
-    clLastColor := clSkyBlue;
-    FD2DCanvas.Brush.Color := clSkyBlue;
+    if FFlipped then
+    begin
+      clLastColor := clBlue;
+      FD2DCanvas.Brush.Color := clBlue;
+    end
+    else
+    begin
+      clLastColor := clSkyBlue;
+      FD2DCanvas.Brush.Color := clSkyBlue;
+    end;
+
     nSquareHeight := Height div 8;
     nSquareWidth  := Width div 8;
     nX := 0;
@@ -314,7 +345,6 @@ begin
         Rectangle(rectSquare);
         FillRect(rectSquare);
 
-
         if I mod 8 <> 0 then
         begin
           nX := nX + nSquareWidth;
@@ -330,7 +360,24 @@ begin
         end;
 
       end;
+      for I := 0 to FAvailableMoves.Count - 1 do
+      begin
+        SquarePoint := FMap[FAvailableMoves[I]];
+        SquarePoint.X := SquarePoint.X + 50;
+        SquarePoint.Y := SquarePoint.Y + 50;
+        var Circle : TD2D1Ellipse;
+        Circle.point   := SquarePoint;
+        Circle.radiusX := 25;
+        Circle.radiusY := 25;
+
+        FD2DCanvas.Brush.Color := clLime;
+        FD2DCanvas.Pen.Color := clLime;
+        DrawEllipse(Circle);
+        FillEllipse(Circle);
+      end;
     end;
+
+
     PaintPieces;
     if Assigned(FOnPaint) then
       OnPaint(Self);
@@ -339,8 +386,8 @@ end;
 
 procedure TChessBoard.PaintPieces;
 var
-  I             : Integer;
-  Point         : TPoint;
+  I     : Integer;
+  Point : TPoint;
 begin
   if FUseD2D then
   begin
@@ -351,9 +398,7 @@ begin
         FD2DCanvas.Draw(Point.X, Point.Y, FPieces[I])
       else if FPieces[I].Dragging then
         FD2DCanvas.Draw(FPieces[I].DragPos.X,FPieces[I].DragPos.Y, FPieces[I])
-
     end;
-
   end;
 end;
 
@@ -434,20 +479,38 @@ begin
   nSquareHeight := Height div 8;
   X := 0;
   Y := Height - nSquareHeight;
-
-  for I := 1 to 64 do
+  if FFlipped then
   begin
-    FMap.Add(TChessCoordinate(I), Point(X,Y));
-    if I mod 8 <> 0 then
+    for I := 64 downto 1 do
     begin
-      X := X + nSquareHeight;
-    end
-    else
+      FMap.Add(TChessCoordinate(I), Point(X,Y));
+      if I mod 8 <> 0 then
+      begin
+        X := X + nSquareHeight;
+      end
+      else
+      begin
+        X := 0;
+        Y := Y - nSquareHeight;
+      end;
+    end;
+  end
+  else begin
+    for I := 1 to 64 do
     begin
-      X := 0;
-      Y := Y - nSquareHeight;
+      FMap.Add(TChessCoordinate(I), Point(X,Y));
+      if I mod 8 <> 0 then
+      begin
+        X := X + nSquareHeight;
+      end
+      else
+      begin
+        X := 0;
+        Y := Y - nSquareHeight;
+      end;
     end;
   end;
+
 end;
 
 procedure TChessBoard.MapBoard;
@@ -461,7 +524,7 @@ begin
   begin
     F := nil;
     for P in FPieces do
-    if P.Position = TChessCoordinate(I) then
+    if (P.Position = TChessCoordinate(I)) and (not P.Captured) then
     begin
       F := P;
       Break;
@@ -483,22 +546,23 @@ begin
   end;
 end;
 
-function TChessBoard.CheckMove(const A, B : TChessCoordinate; ChessPiece : TChessPiece) : Boolean;
+function TChessBoard.CheckMove(const A, B : TChessCoordinate; ChessPiece : TChessPiece;
+                               var ACapture : TChessPiece; bJustPeek : Boolean) : Boolean;
 var
   Piece : TChessPiece;
 begin
   Result := True;
+  ACapture := nil;
   if not (ChessPiece is TKnight) then
   begin
     Result := CheckObstacles(A,B, ChessPiece.White);
   end;
 
-  if GetPiece(B, Piece) then
+  if Result and GetPiece(B, Piece) then
   begin
     Result := Piece.White <> ChessPiece.White;
-
-    if Result then
-      Piece.Captured := True;
+    if Result and not bJustPeek then Piece.Captured := True;
+    ACapture := Piece;
   end;
 end;
 
@@ -514,6 +578,7 @@ var
   I                : Integer;
   I2               : Integer;
   Piece            : TChessPiece;
+  bBlocked         : Boolean;
 begin
   ARow := GetRow(A);
   BRow := GetRow(B);
@@ -532,6 +597,7 @@ begin
   I := ARow;
   I2:= AColumn;
 
+  bBlocked := False;
   if (bDiagonal) then
   begin
     if bRightWards then
@@ -544,10 +610,10 @@ begin
           if FBoardMap.TryGetValue(TBoard[I2][I], Piece) then
           begin
             if (I = BRow) and (I2 = BColumn)
-              then Result := Result and (Piece = nil) or ((Piece <> nil) and (Piece.White <> bWhite))
+              then Result := Result and ((Piece = nil) or ((Piece <> nil) and (Piece.White <> bWhite)))
               else Result := Result and (Piece = nil);
           end;
-        until (I = BRow) and (I2 = BColumn);
+        until (I = BRow) and (I2 = BColumn) or not Result;
       end
       else
       begin
@@ -560,7 +626,7 @@ begin
               then Result := Result and (Piece = nil) or ((Piece <> nil) and (Piece.White <> bWhite))
               else Result := Result and (Piece = nil);
           end;
-        until (I = BRow) and (I2 = BColumn);
+        until (I = BRow) and (I2 = BColumn) or not Result;
       end;
     end
     else
@@ -576,7 +642,7 @@ begin
               then Result := Result and (Piece = nil) or ((Piece <> nil) and (Piece.White <> bWhite))
               else Result := Result and (Piece = nil);
           end;
-        until (I = BRow) and (I2 = BColumn);
+        until (I = BRow) and (I2 = BColumn) or not Result;
       end
       else
       begin
@@ -589,33 +655,73 @@ begin
               then Result := Result and (Piece = nil) or ((Piece <> nil) and (Piece.White <> bWhite))
               else Result := Result and (Piece = nil);
           end;
-        until (I = BRow) and (I2 = BColumn);;
+        until (I = BRow) and (I2 = BColumn) or not Result;
       end;
     end;
 
   end
   else if (bSameRow) then
   begin
-    for I := AColumn to BColumn do
+    if AColumn > BColumn then
+    for I := BColumn to AColumn do
     begin
       if (I <> AColumn) and FBoardMap.TryGetValue(TBoard[I][ARow], Piece) then
       begin
-        if I = BColumn
-          then Result := Result and (Piece = nil) or ((Piece <> nil) and (Piece.White <> bWhite))
-          else Result := Result and (Piece = nil);
+        if I = BColumn then
+          begin
+            if (Piece <> nil) and (Piece.White <> bWhite) then
+            begin
+              if bBlocked then
+                Result := False;
+              bBlocked := True;
+            end;
+
+          end
+        else Result := Result and (Piece = nil) and (not bBlocked);
       end;
+    end
+    else begin
+      for I := AColumn to BColumn do
+      begin
+        if (I <> AColumn) and FBoardMap.TryGetValue(TBoard[I][ARow], Piece) then
+        begin
+          if I = BColumn then
+          begin
+            if (Piece <> nil) and (Piece.White <> bWhite) then
+            begin
+              if bBlocked then
+                Result := False;
+              bBlocked := True;
+            end;
+
+          end
+          else Result := Result and (Piece = nil) and (not bBlocked);
+        end;
+      end
     end;
   end
   else
   begin
-   for I := ARow to BRow do
+    if ARow > Brow then
+    for I := Brow to ARow do
     begin
       if (I <> ARow) and FBoardMap.TryGetValue(TBoard[AColumn][I], Piece) then
       begin
         if I = BRow
-          then Result := Result and (Piece = nil) or ((Piece <> nil) and (Piece.White <> bWhite))
+          then Result := Result and ((Piece = nil) or ((Piece <> nil) and (Piece.White <> bWhite)))
           else Result := Result and (Piece = nil);
       end;
+    end
+    else begin
+      for I := ARow to BRow do
+      begin
+        if (I <> ARow) and FBoardMap.TryGetValue(TBoard[AColumn][I], Piece) then
+        begin
+          if I = BRow
+            then Result := Result and ((Piece = nil) or ((Piece <> nil) and (Piece.White <> bWhite)))
+            else Result := Result and (Piece = nil);
+        end;
+      end
     end;
   end
 end;
@@ -655,16 +761,110 @@ begin
 end;
 
 procedure TChessBoard.UpdateBoard(const A, B : TChessCoordinate;const Piece : TChessPiece);
-var
-  X : TChessPiece;
 begin
-  if FBoardMap.TryGetValue(A, X) then
+  FBoardMap.AddOrSetValue(A, nil);
+  FBoardMap.AddOrSetValue(B, Piece);
+end;
+
+function TChessBoard.Castles(const A : TChessCoordinate; Piece : TChessPiece) : Boolean;
+begin
+  Result := False;
+  if (Piece is TKing) and (not Piece.Moved) then
   begin
-    FBoardMap[A] := nil;
-  end;
-  if FBoardMap.TryGetValue(B, X) then
-  begin
-    FBoardMap[B] := Piece;
+    if FWhiteTurn then
+    begin
+       if A = c1 then
+       begin
+         var Rook : TChessPiece;
+         if GetPiece(a1, Rook) and not Rook.Moved and CanCastle(FDragPiece, True) then
+         begin
+           (Rook as TRook).LongCastle;
+           (FDragPiece as TKing).LongCastle;
+            Result := True;
+            UpdateBoard(FDragPiece.InitialPos, FDragPiece.Position, FDragPiece);
+            UpdateBoard(a1, Rook.Position, Rook);
+            if KingInCheck(FWhiteTurn) then
+            begin
+              FDragPiece.Undo;
+              Rook.Undo;
+              MapBoard;
+            end
+            else begin
+              FWhiteTurn := not FWhiteTurn;
+              Inc(FMoves);
+            end;
+         end;
+       end
+       else if A = g1 then
+       begin
+         var Rook : TChessPiece;
+         if GetPiece(h1, Rook) and not Rook.Moved and CanCastle(FDragPiece, False) then
+         begin
+           (Rook as TRook).ShortCastle;
+           (FDragPiece as TKing).ShortCastle;
+            Result := True;
+            UpdateBoard(FDragPiece.InitialPos, FDragPiece.Position, FDragPiece);
+            UpdateBoard(a8, Rook.Position, Rook);
+            if KingInCheck(FWhiteTurn) then
+            begin
+              FDragPiece.Undo;
+              Rook.Undo;
+              MapBoard;
+            end
+            else begin
+              FWhiteTurn := not FWhiteTurn;
+              Inc(FMoves);
+            end;
+         end;
+       end;
+    end
+    else
+    begin
+      if A = c8 then
+      begin
+        var Rook : TChessPiece;
+        if GetPiece(a8, Rook) and not Rook.Moved and CanCastle(FDragPiece, True) then
+        begin
+          (Rook as TRook).LongCastle;
+          (FDragPiece as TKing).LongCastle;
+          Result := True;
+          UpdateBoard(FDragPiece.InitialPos, FDragPiece.Position, FDragPiece);
+          UpdateBoard(a8, Rook.Position, Rook);
+          if KingInCheck(FWhiteTurn) then
+          begin
+            FDragPiece.Undo;
+            Rook.Undo;
+            MapBoard;
+          end
+          else begin
+            FWhiteTurn := not FWhiteTurn;
+            Inc(FMoves);
+          end;
+        end;
+      end
+      else if A = g8 then
+      begin
+        var Rook : TChessPiece;
+        if GetPiece(h8, Rook) and not Rook.Moved and CanCastle(FDragPiece, False) then
+        begin
+          (Rook as TRook).ShortCastle;
+          (FDragPiece as TKing).ShortCastle;
+           Result := True;
+           UpdateBoard(FDragPiece.InitialPos, FDragPiece.Position, FDragPiece);
+           UpdateBoard(a8, Rook.Position, Rook);
+           if KingInCheck(FWhiteTurn) then
+           begin
+             FDragPiece.Undo;
+             Rook.Undo;
+             MapBoard;
+           end
+           else begin
+             FWhiteTurn := not FWhiteTurn;
+             Inc(FMoves);
+           end;
+        end;
+      end;
+    end;
   end;
 end;
 
@@ -678,18 +878,114 @@ begin
     FState := gsNone;
 end;
 
+function TChessBoard.KingInCheck(bWhite : Boolean) : Boolean;
+begin
+  if bWhite
+    then Result := SquareAttacked(FWhiteKing.Position, False)
+    else Result := SquareAttacked(FBlackKing.Position, True);
+end;
+
+function TChessBoard.GetAvailableMoves(Piece : TChessPiece) : Boolean;
+var
+  I        : Integer;
+  Captured : TChessPiece;
+  bCapture : Boolean;
+begin
+  FAvailableMoves.Clear;
+  Result := False;
+  if not (Piece is TKing) then
+  begin
+    for I := 1 to 64 do
+    begin
+      if TChessCoordinate(I) <> Piece.Position then
+      begin
+        var Coordinate : TChessCoordinate;
+        Coordinate := TChessCoordinate(I);
+        bCapture := False;
+        if GetPiece(Coordinate, Captured) then
+          bCapture := True;
+
+        if Piece.CanMove(Coordinate, bCapture) then
+        begin
+          if CheckMove(Piece.Position, Coordinate, Piece, Captured) and
+             Piece.Move(Coordinate, bCapture)  then
+          begin
+            MapBoard;
+            if not KingInCheck(Piece.White) then
+            begin
+              FAvailableMoves.Add(Coordinate);
+              Result := True;
+            end;
+            Piece.Undo;
+            if Captured <> nil then
+              Captured.Captured := False;
+            MapBoard;
+          end;
+        end;
+      end;
+    end;
+  end
+  else begin
+    for I := 1 to 64 do
+    begin
+      if TChessCoordinate(I) <> Piece.Position then
+      begin
+        var Coordinate : TChessCoordinate;
+        Coordinate := TChessCoordinate(I);
+        bCapture := False;
+        if GetPiece(Coordinate,  Captured) then
+          bCapture := True;
+
+        if Piece.CanMove(Coordinate, bCapture) then
+        begin
+          if CheckMove(Piece.Position, Coordinate, Piece, Captured) and
+             Piece.Move(Coordinate, bCapture)  then
+          begin
+            MapBoard;
+            if not KingInCheck(Piece.White) then
+            begin
+              FAvailableMoves.Add(Coordinate);
+              Result := True;
+            end;
+            Piece.Undo;
+            if Captured <> nil then
+              Captured.Captured := False;
+            MapBoard;
+          end;
+        end;
+      end;
+    end;
+  end;
+
+end;
+
+function TChessBoard.CheckForMate(bWhite : Boolean) : Boolean;
+var
+  Piece : TChessPiece;
+begin
+  Result := False;
+  for Piece in FPieces do
+  if (Piece.White = bWhite) and (not Piece.Captured) then
+    Result := Result or GetAvailableMoves(Piece);
+end;
+
+procedure TChessBoard.Flip;
+begin
+  FFlipped := not FFlipped;
+  MapCoordinates;
+  Invalidate;
+end;
 procedure TChessBoard.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   Coordinate : TChessCoordinate;
   Origin     : TChessCoordinate;
   Piece      : TChessPiece;
+  Captured   : TChessPiece;
   bCapture   : Boolean;
-  bDone      : Boolean;
 begin
   if FDragging and Assigned(FDragPiece) then
   begin
     bCapture := False;
-    bDone    := False;
     Origin   := FDragPiece.Position;
     FDragPiece.Dragging := False;
     if MapFromPoint(X, Y, Coordinate) then
@@ -697,90 +993,41 @@ begin
       if GetPiece(Coordinate, Piece) then
         bCapture := True;
 
-      if (FDragPiece is TKing) and (not FDragPiece.Moved) then
-      begin
-        if FWhiteTurn then
-        begin
-          if Coordinate = c1 then
-          begin
-            var Rook : TChessPiece;
-            if GetPiece(a1, Rook) and not Rook.Moved and CanCastle(FDragPiece, True) then
-            begin
-              (Rook as TRook).LongCastle;
-              (FDragPiece as TKing).LongCastle;
-               bDone := True;
-               FWhiteTurn := not FWhiteTurn;
-               Inc(FMoves);
-               UpdateBoard(FDragPiece.InitialPos, FDragPiece.Position, FDragPiece);
-               UpdateBoard(a1, Rook.Position, Rook);
-            end;
-          end
-          else if Coordinate = g1 then
-          begin
-            var Rook : TChessPiece;
-            if GetPiece(h1, Rook) and not Rook.Moved and CanCastle(FDragPiece, False) then
-            begin
-              (Rook as TRook).ShortCastle;
-              (FDragPiece as TKing).ShortCastle;
-               bDone := True;
-               FWhiteTurn := not FWhiteTurn;
-               Inc(FMoves);
-               UpdateBoard(FDragPiece.InitialPos, FDragPiece.Position, FDragPiece);
-               UpdateBoard(h1, Rook.Position, Rook);
-            end;
-          end;
-        end
-        else
-        begin
-          if Coordinate = c8 then
-          begin
-            var Rook : TChessPiece;
-            if GetPiece(a8, Rook) and not Rook.Moved and CanCastle(FDragPiece, True) then
-            begin
-              (Rook as TRook).LongCastle;
-              (FDragPiece as TKing).LongCastle;
-               bDone := True;
-               FWhiteTurn := not FWhiteTurn;
-               Inc(FMoves);
-               UpdateBoard(FDragPiece.InitialPos, FDragPiece.Position, FDragPiece);
-               UpdateBoard(a8, Rook.Position, Rook);
-            end;
-          end
-          else if Coordinate = g8 then
-          begin
-            var Rook : TChessPiece;
-            if GetPiece(h8, Rook) and not Rook.Moved and CanCastle(FDragPiece, False) then
-            begin
-              (Rook as TRook).ShortCastle;
-              (FDragPiece as TKing).ShortCastle;
-               bDone := True;
-               FWhiteTurn := not FWhiteTurn;
-               Inc(FMoves);
-               UpdateBoard(FDragPiece.InitialPos, FDragPiece.Position, FDragPiece);
-               UpdateBoard(a8, Rook.Position, Rook);
-            end;
-          end;
-        end;
-
-      end;
-
-      if (not bDone) and (FWhiteTurn xor (not FDragPiece.White)) and
+      if (not Castles(Coordinate, FDragPiece)) and (FWhiteTurn xor (not FDragPiece.White)) and
           FDragPiece.CanMove(Coordinate, bCapture) then
       begin
-        if CheckMove(FDragPiece.Position, Coordinate, FDragPiece) and
+        if CheckMove(FDragPiece.Position, Coordinate, FDragPiece, Captured) and
            FDragPiece.Move(Coordinate, bCapture)  then
         begin
           UpdateBoard(Origin, FDragPiece.Position, FDragPiece);
-          FWhiteTurn := not FWhiteTurn;
-          Inc(FMoves);
-          FFirstMove := False;
-          CheckKings;
+          if KingInCheck(FWhiteTurn) then
+          begin
+            FDragPiece.Undo;
+            MapBoard;
+            if (Captured <> nil) then
+              Captured.Captured := False;
+          end
+          else begin
+            if not CheckForMate(not FWhiteTurn) then
+            begin
+              if FWhiteTurn
+                then FState := gsWhiteWinsOnMate
+                else FState := gsBlackWinsOnMate;
+            end
+            else CheckKings;
+            FWhiteTurn := not FWhiteTurn;
+            Inc(FMoves);
+            FFirstMove := False;
+          end;
         end;
       end;
     end;
   end;
   FDragging  := False;
   FDragPiece := nil;
+  FAvailableMoves.Clear;
+  if Assigned(FGameChange) then
+    FGameChange(FState);
   Invalidate;
   inherited;
 end;
@@ -798,8 +1045,9 @@ begin
       FDragging := True;
       FDragPiece := Piece;
       FDragPiece.Dragging := True;
-      FDragPiece.X := X;
-      FDragPiece.Y := Y;
+      FDragPiece.X := X - FDragPiece.Width div 2;
+      FDragPiece.Y := Y - FDragPiece.Height div 2;
+      if GetAvailableMoves(FDragPiece) then Invalidate;
     end
     else
     begin
@@ -826,6 +1074,9 @@ begin
   FFirstMove := True;
   FMoves := 0;
   FState := gsNone;
+  FAvailableMoves.Clear;
+  if Assigned(FGameChange) then
+    FGameChange(FState);
   Invalidate;
 end;
 
@@ -1239,5 +1490,24 @@ end;
 function MapFromRowColumn(Row : Integer; Column : Integer) : TChessCoordinate;
 begin
   Result := TChessCoordinate(Column + 1 + Row * 8);
+end;
+
+function TGameStateHelper.ToString : String;
+begin
+  case Self of
+    gsNone                     : Result := 'None';
+    gsWhiteInCheck             : Result := 'White in Check';
+    gsBlackInCheck             : Result := 'Black in Check';
+    gsWhiteWinsOnResign        : Result := 'White Wins (On Resign)';
+    gsWhiteWinsOnMate          : Result := 'White Wins (On Mate)';
+    gsWhiteWinsOnTime          : Result := 'White Wins (On Time)';
+    gsBlackWinsOnResign        : Result := 'Black Wins (On Resgin)';
+    gsBlackWinsOnMate          : Result := 'Black Wins (On Mate)' ;
+    gsBlackWinsOnTime          : Result := 'Black Wins (On Time)';
+    gsDrawInsufficientMaterial : Result := 'Draw (Insufficient Material)';
+    gsDrawAgreement            : Result := 'Draw (Agrrement)';
+    gsDrawStaleMate            : Result := 'Draw (Stalamate)';
+    gsDrawRepetition           : Result := 'Draw (DrawRepetition)';
+  end;
 end;
 end.

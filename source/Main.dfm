@@ -20,14 +20,46 @@ object MainForm: TMainForm
     Height = 41
     Align = alTop
     TabOrder = 0
+    ExplicitLeft = 8
+    ExplicitTop = -3
+    object lblStatus: TLabel
+      Left = 564
+      Top = 7
+      Width = 45
+      Height = 21
+      Align = alCustom
+      Caption = 'None'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -17
+      Font.Name = 'Tahoma'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
     object btnNewGame: TButton
-      Left = 32
-      Top = 8
+      Left = 1
+      Top = 1
       Width = 75
-      Height = 25
+      Height = 39
+      Align = alLeft
       Caption = 'New Game'
       TabOrder = 0
       OnClick = btnNewGameClick
+      ExplicitLeft = 24
+      ExplicitTop = 10
+      ExplicitHeight = 25
+    end
+    object btnFlip: TButton
+      Left = 907
+      Top = 1
+      Width = 75
+      Height = 39
+      Align = alRight
+      Caption = 'Flip Board'
+      TabOrder = 1
+      OnClick = btnFlipClick
+      ExplicitLeft = 908
+      ExplicitTop = -1
     end
   end
   object pnl_Board: TPanel

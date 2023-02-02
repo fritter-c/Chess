@@ -28,13 +28,16 @@ type
     FMoved      : Boolean;
     FDragPos    : TPoint;
     FDragging   : Boolean;
+    FMoves      : Integer;
+    FLastPos    : TChessCoordinate;
 
     procedure SetInitialPosition(APos : TChessCoordinate);
   public
     constructor Create(bWhite : Boolean); virtual;
     function    CanMove(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; virtual; abstract;
-    function    Move(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; virtual;
-    procedure   Reset; virtual;
+    function    Move(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean;
+    procedure   Reset;
+    procedure   Undo;
 
     property Position   : TChessCoordinate read FPosition   write FPosition;
     property White      : Boolean          read FWhite      write FWhite;
@@ -45,6 +48,7 @@ type
     property Dragging   : Boolean          read FDragging   write FDragging;
     property X          : Integer          read FDragPos.X  write FDragPos.X;
     property Y          : Integer          read FDragPos.Y  write FDragPos.Y;
+    property LastPos    : TChessCoordinate read FLastPos;
   end;
 
   TKnight = class(TChessPiece)
@@ -82,15 +86,9 @@ type
   end;
 
   TPawn = class(TChessPiece)
-  private
-    FFirstMove : Boolean;
   public
     constructor Create(bWhite : Boolean); override;
     function CanMove(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
-    function Move(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean; override;
-    procedure Reset; override;
-
-    property FirstMove : Boolean read FFirstMove write FFirstMove;
   end;
 
   function IsOnSameRow     (const A : TChessCoordinate; const B : TChessCoordinate) : Boolean; inline;
@@ -119,8 +117,10 @@ begin
   Result := CanMove(Coordinate, bCapture);
   if Result then
   begin
+    FLastPos  := FPosition;
     FPosition := Coordinate;
     FMoved    := True;
+    Inc(FMoves);
   end;
 end;
 
@@ -133,6 +133,7 @@ begin
   FDragPos.X := -1;
   FDragPos.Y := -1;
   FDragging := False;
+  FMoves := 0;
   inherited Create;
 end;
 
@@ -140,6 +141,7 @@ procedure TChessPiece.SetInitialPosition(APos : TChessCoordinate);
 begin
    FInitialPos := APos;
    FPosition   := APos;
+   FLastPos    := APos;
 end;
 
 procedure TChessPiece.Reset;
@@ -147,6 +149,14 @@ begin
   FPosition := FInitialPos;
   FCaptured := False;
   FMoved    := False;
+  FMoves    := 0;
+end;
+
+procedure TChessPiece.Undo;
+begin
+  FPosition := FLastPos;
+  Dec(FMoves);
+  FMoved := FMoves <> 0;
 end;
 //ChessPiece//
 
@@ -193,6 +203,7 @@ begin
   if FWhite
   then FPosition := c1
   else FPosition := c8;
+  Inc(FMoves);
   FMoved := True;
 end;
 
@@ -201,6 +212,7 @@ begin
   if FWhite
   then FPosition := g1
   else FPosition := g8;
+  Inc(FMoves);
   FMoved := True;
 end;
 //King//
@@ -265,6 +277,7 @@ begin
   if FWhite
   then FPosition := d1
   else FPosition := d8;
+  Inc(FMoves);
   FMoved := True;
 end;
 
@@ -273,6 +286,7 @@ begin
   if FWhite
   then FPosition := f1
   else FPosition := f8;
+  Inc(FMoves);
   FMoved := True;
 end;
 //Rook//
@@ -284,13 +298,12 @@ begin
   if FWhite
     then LoadFromResourceName(HInstance,'PngImage_10')
     else LoadFromResourceName(HInstance,'PngImage_4');
-  FFirstMove := True;
 end;
 
 function TPawn.CanMove(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
 begin
  if not bCapture then
- if(FFirstMove) then
+ if(not FMoved) then
  begin
    if FWhite
      then Result := Integer(Coordinate) in [Integer(FPosition) + 8, Integer(FPosition) + 16]
@@ -305,22 +318,13 @@ begin
  else
  begin
    if FWhite
-     then Result := (Integer(Coordinate) = Integer(FPosition) + 7) or (Integer(Coordinate) = Integer(FPosition) + 9)
-     else Result := (Integer(Coordinate) = Integer(FPosition) - 7) or (Integer(Coordinate) = Integer(FPosition) - 9);
+     then Result := (Integer(Coordinate) = Integer(FPosition) + 7) or
+          (not (GetColumn(FPosition) = 8) and (Integer(Coordinate) = Integer(FPosition) + 9))
+     else Result := (Integer(Coordinate) = Integer(FPosition) - 7) or
+          (not (GetColumn(FPosition) = 1) and (Integer(Coordinate) = Integer(FPosition) - 9));
  end;
 end;
 
-function TPawn.Move(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
-begin
-  Result := inherited;
-  FFirstMove := False;
-end;
-
-procedure TPawn.Reset;
-begin
-  FFirstMove := True;
-  inherited;
-end;
 //Pawn//
 
 //Functions//
@@ -400,28 +404,6 @@ begin
   else
     Result := 8;
   end;
-end;
-function GetDiagonals (const A : TChessCoordinate; var LDiagonal : TSpecialSquares; var RDiagonal : TSpecialSquares) : Boolean;
-var
-  Coordinate : Integer;
-begin
-  Coordinate := Integer(A);
-  if (Coordinate >= 1) and (Coordinate <= 64) then
-  begin
-    repeat
-      RDiagonal := RDiagonal + [TChessCoordinate(Coordinate)];
-      Inc(Coordinate, 9);
-    until (Coordinate > 64);
-
-    repeat
-      LDiagonal := LDiagonal + [TChessCoordinate(Coordinate)];
-      Inc(Coordinate, 7);
-    until (Coordinate > 64);
-
-    Result := True;
-  end
-  else
-    Result := False;
 end;
 //Functions//
 end.
