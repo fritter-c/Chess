@@ -1,7 +1,7 @@
 object MainForm: TMainForm
   Left = 0
   Top = 0
-  Caption = 'ChessEngine'
+  Caption = 'Chess'
   ClientHeight = 839
   ClientWidth = 983
   Color = clBtnFace
@@ -11,6 +11,7 @@ object MainForm: TMainForm
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  Position = poDesigned
   PixelsPerInch = 96
   TextHeight = 13
   object pnl_Status: TPanel
@@ -20,10 +21,8 @@ object MainForm: TMainForm
     Height = 41
     Align = alTop
     TabOrder = 0
-    ExplicitLeft = 8
-    ExplicitTop = -3
     object lblStatus: TLabel
-      Left = 564
+      Left = 484
       Top = 7
       Width = 45
       Height = 21
@@ -45,9 +44,6 @@ object MainForm: TMainForm
       Caption = 'New Game'
       TabOrder = 0
       OnClick = btnNewGameClick
-      ExplicitLeft = 24
-      ExplicitTop = 10
-      ExplicitHeight = 25
     end
     object btnFlip: TButton
       Left = 907
@@ -58,8 +54,25 @@ object MainForm: TMainForm
       Caption = 'Flip Board'
       TabOrder = 1
       OnClick = btnFlipClick
-      ExplicitLeft = 908
-      ExplicitTop = -1
+    end
+    object btnPromotionForm: TButton
+      Left = 832
+      Top = 1
+      Width = 75
+      Height = 39
+      Align = alRight
+      Caption = 'Promotion'
+      TabOrder = 2
+      OnClick = btnPromotionFormClick
+    end
+    object btnStart: TButton
+      Left = 76
+      Top = 1
+      Width = 75
+      Height = 39
+      Align = alLeft
+      Caption = 'Start'
+      TabOrder = 3
     end
   end
   object pnl_Board: TPanel

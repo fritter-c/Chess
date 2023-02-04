@@ -15,6 +15,8 @@ uses
 
 type
   TGameState = (gsNone,
+                gsWhiteToMove,
+                gsBlackToMove,
                 gsWhiteInCheck,
                 gsBlackInCheck,
                 gsWhiteWinsOnResign,
@@ -32,7 +34,8 @@ type
   end;
 
   TGameChanged = procedure (State : TGameState) of object;
-  TChessBoard = class(TCustomControl)
+  TClockTick   = procedure (White : Boolean; TimeLeft : Int64) of object;
+  TChessBoard  = class(TCustomControl)
   private
     FOnPaint        : TNotifyEvent;
     FUseD2D         : Boolean;
@@ -51,17 +54,19 @@ type
     FGameChange     : TGameChanged;
     FAvailableMoves : TList<TChessCoordinate>;
     FFlipped        : Boolean;
+    FHasPromoted    : Boolean;
+    FBlockTable     : Boolean;
+    FTick           : TClockTick;
 
     function CreateD2DCanvas : Boolean;
-
     procedure WmPaint(var Message : TWMPaint); message WM_PAINT;
-    procedure WmSize(var Message : TWMSize); message WM_SIZE;
+    procedure WmSize (var Message : TWMSize);  message WM_SIZE;
 
     procedure SetAcceleratedD2D(const Value : Boolean);
-    function  GetGDICanvas : TCanvas;
-    function  GetOSCanvas  : TCustomCanvas;
+    function  GetGDICanvas    : TCanvas;
+    function  GetOSCanvas     : TCustomCanvas;
     function  CanCastle(Piece : TChessPiece; Long : Boolean) : Boolean;
-    function  SquareAttacked (Square : TChessCoordinate; ByWhite : Boolean) : Boolean;
+    function  IsSquareAttacked (Square : TChessCoordinate; ByWhite : Boolean) : Boolean;
 
     procedure CreateChessPieces;
     procedure MapCoordinates;
@@ -77,17 +82,18 @@ type
     function  KingInCheck(bWhite : Boolean) : Boolean;
     function  GetAvailableMoves(Piece : TChessPiece) : Boolean;
     function  CheckForMate(bWhite : Boolean) : Boolean;
+    function  Promote(Piece : TChessPiece) : Boolean;
   protected
     procedure CreateWnd; override;
     procedure Paint; override;
     procedure PaintPieces;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
-    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+    procedure MouseUp  (Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
 
   public
     constructor Create(AOwner : TComponent); override;
-    destructor Destroy(); override;
+    destructor Destroy; override;
     procedure Reset;
 
     property Accelerated : Boolean         read FUseD2D write SetAcceleratedD2D;
@@ -95,8 +101,10 @@ type
     property GDICanvas   : TCanvas         read GetGDICanvas;
     property D2DCanvas   : TDirect2DCanvas read FD2DCanvas;
 
-    property OnPaint       : TNotifyEvent read FOnPaint write FOnPaint;
+    property OnPaint       : TNotifyEvent read FOnPaint    write FOnPaint;
     property OnGameChanged : TGameChanged read FGameChange write FGameChange;
+    property OnTick        : TClockTick   read FTick       write FTick;
+
     procedure Flip;
   published
     property Align;
@@ -171,6 +179,7 @@ implementation
 
 uses
   Windows,
+  PromotionForm,
   Winapi.D2D1;
 
 const
@@ -202,6 +211,8 @@ begin
   FState     := gsNone;
   FFlipped   := False;
   FAvailableMoves := TList<TChessCoordinate>.Create;
+  FHasPromoted    := False;
+  FBlockTable     := False;
   CreateChessPieces;
 end;
 
@@ -408,6 +419,11 @@ var
   bWhite : Boolean;
   nPos   : Integer;
 begin
+  for var I := Low(FPieces) to High(FPieces) do
+  begin
+    FPieces[I].Free;
+  end;
+
   FPieces[1] := TKing.Create(True);
   FPieces[2] := TKing.Create(False);
 
@@ -702,8 +718,8 @@ begin
   end
   else
   begin
-    if ARow > Brow then
-    for I := Brow to ARow do
+    if ARow > BRow then
+    for I := BRow to ARow do
     begin
       if (I <> ARow) and FBoardMap.TryGetValue(TBoard[AColumn][I], Piece) then
       begin
@@ -870,9 +886,9 @@ end;
 
 procedure TChessBoard.CheckKings;
 begin
-  if SquareAttacked(FWhiteKing.Position, False) then
+  if IsSquareAttacked(FWhiteKing.Position, False) then
     FState := gsWhiteInCheck
-  else if SquareAttacked(FBlackKing.Position, True) then
+  else if IsSquareAttacked(FBlackKing.Position, True) then
     FState := gsBlackInCheck
   else
     FState := gsNone;
@@ -881,8 +897,8 @@ end;
 function TChessBoard.KingInCheck(bWhite : Boolean) : Boolean;
 begin
   if bWhite
-    then Result := SquareAttacked(FWhiteKing.Position, False)
-    else Result := SquareAttacked(FBlackKing.Position, True);
+    then Result := IsSquareAttacked(FWhiteKing.Position, False)
+    else Result := IsSquareAttacked(FBlackKing.Position, True);
 end;
 
 function TChessBoard.GetAvailableMoves(Piece : TChessPiece) : Boolean;
@@ -969,6 +985,43 @@ begin
     Result := Result or GetAvailableMoves(Piece);
 end;
 
+function TChessBoard.Promote(Piece : TChessPiece) : Boolean;
+var
+  PromotedPiece : TChessPiece;
+begin
+  Result := True;
+  if (Piece is TPawn) and (((Piece.White) and (GetRow(Piece.Position) = 8)) or
+    ((not Piece.White) and (GetRow(Piece.Position) = 1)))  then
+  begin
+    Result := False;
+    with TPromotion.Create(Self) do
+    begin
+      ConfigureForm(Piece.White);
+      Left := Mouse.CursorPos.X;
+      Top  := Mouse.CursorPos.Y;
+      ShowModal;
+      if ModalResult = mrOk then
+      begin
+        FHasPromoted := True;
+        PromotedPiece:= SelectedPiece;
+        PromotedPiece.InitialPos := Piece.Position;
+        for var I := Low(FPieces) to High(FPieces) do
+        begin
+          if FPieces[I] = Piece then
+          begin
+            FPieces[I] := PromotedPiece;
+            Break;
+          end;
+
+        end;
+        Piece.Free;
+        Result := True;
+      end;
+      Free;
+    end;
+  end;
+end;
+
 procedure TChessBoard.Flip;
 begin
   FFlipped := not FFlipped;
@@ -983,53 +1036,80 @@ var
   Captured   : TChessPiece;
   bCapture   : Boolean;
 begin
-  if FDragging and Assigned(FDragPiece) then
+  if FDragging and Assigned(FDragPiece) and (Button = mbLeft) then
   begin
     bCapture := False;
     Origin   := FDragPiece.Position;
     FDragPiece.Dragging := False;
     if MapFromPoint(X, Y, Coordinate) then
     begin
+      // Check if there is a piece in the destination square
       if GetPiece(Coordinate, Piece) then
         bCapture := True;
 
+      // Check for castles, the game turn and the piece standard moveset
       if (not Castles(Coordinate, FDragPiece)) and (FWhiteTurn xor (not FDragPiece.White)) and
           FDragPiece.CanMove(Coordinate, bCapture) then
       begin
+        // Check for the move in the context of the actual board (Obstacles and Captures)
         if CheckMove(FDragPiece.Position, Coordinate, FDragPiece, Captured) and
            FDragPiece.Move(Coordinate, bCapture)  then
         begin
           UpdateBoard(Origin, FDragPiece.Position, FDragPiece);
           if KingInCheck(FWhiteTurn) then
           begin
+            // Illegal move (puts/maintains self in check), Undo and ReMaps
             FDragPiece.Undo;
             MapBoard;
             if (Captured <> nil) then
               Captured.Captured := False;
           end
-          else begin
+          // Valid move, Continues
+          else if Promote(FDragPiece) then
+          begin
+            // If not in checkmate/stalemate, check if a king is in check and updates the state
             if not CheckForMate(not FWhiteTurn) then
             begin
-              if FWhiteTurn
-                then FState := gsWhiteWinsOnMate
-                else FState := gsBlackWinsOnMate;
+              if (not FWhiteTurn) and
+                IsSquareAttacked(FWhiteKing.Position, not FWhiteTurn) then
+                FState := gsWhiteWinsOnMate
+              else if (not FWhiteTurn) then
+                FState := gsDrawStaleMate
+              else if (FWhiteTurn) and
+                IsSquareAttacked(FBlackKing.Position, FWhiteTurn) then
+                FState := gsBlackWinsOnMate
+              else
+                FState := gsDrawStaleMate;
             end
             else CheckKings;
             FWhiteTurn := not FWhiteTurn;
             Inc(FMoves);
             FFirstMove := False;
+          end
+          else begin
+            // Cancel Promotion, Undo and ReMaps
+            FDragPiece.Undo;
+            MapBoard;
+            if (Captured <> nil) then
+              Captured.Captured := False;
           end;
         end;
       end;
     end;
   end;
-  FDragging  := False;
-  FDragPiece := nil;
-  FAvailableMoves.Clear;
-  if Assigned(FGameChange) then
-    FGameChange(FState);
-  Invalidate;
+  // In case the user presses other mouse buttons while dragging a piece
+  if (Button = mbLeft) then
+  begin
+    FDragging  := False;
+    FDragPiece := nil;
+    FAvailableMoves.Clear;
+    if Assigned(FGameChange) then
+      FGameChange(FState);
+    Invalidate;
+  end;
   inherited;
+  // Game ended, block inputs
+  if FState > gsBlackInCheck then FBlockTable := True;
 end;
 
 procedure TChessBoard.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -1037,9 +1117,9 @@ var
   Coordinate : TChessCoordinate;
   Piece      : TChessPiece;
 begin
-  if MapFromPoint(X,Y,Coordinate) then
+  if MapFromPoint(X,Y,Coordinate) and (Button = mbLeft) and (not FBlockTable) then
   begin
-    SquareAttacked(Coordinate, True);
+    IsSquareAttacked(Coordinate, True);
     if GetPiece(Coordinate, Piece) then
     begin
       FDragging := True;
@@ -1057,6 +1137,9 @@ begin
   end
   else
   begin
+    if Assigned(FDragPiece)then
+      FDragPiece.Dragging := False;
+
     FDragging  := False;
     FDragPiece := nil;
   end;
@@ -1067,8 +1150,14 @@ procedure TChessBoard.Reset;
 var
   Piece : TChessPiece;
 begin
-  for Piece in FPieces do
-    Piece.Reset;
+  if not FHasPromoted then
+  begin
+    for Piece in FPieces do
+      Piece.Reset;
+  end
+  else
+    CreateChessPieces;
+
   MapBoard;
   FWhiteTurn := True;
   FFirstMove := True;
@@ -1077,6 +1166,8 @@ begin
   FAvailableMoves.Clear;
   if Assigned(FGameChange) then
     FGameChange(FState);
+
+  FBlockTable := False;
   Invalidate;
 end;
 
@@ -1107,7 +1198,7 @@ begin
           if FBoardMap.TryGetValue(I,Point) then
             Result := Result and (Point = nil);
 
-          Result := Result and not SquareAttacked(I, False);
+          Result := Result and not IsSquareAttacked(I, False);
         end;
       end
       else begin
@@ -1116,7 +1207,7 @@ begin
           if FBoardMap.TryGetValue(I,Point) then
             Result := Result and (Point = nil);
 
-          Result := Result and not SquareAttacked(I, False);
+          Result := Result and not IsSquareAttacked(I, False);
         end;
       end;
     end
@@ -1128,7 +1219,7 @@ begin
           if FBoardMap.TryGetValue(I,Point) then
             Result := Result and (Point = nil);
 
-          Result := Result and not SquareAttacked(I, True);
+          Result := Result and not IsSquareAttacked(I, True);
         end;
       end
       else begin
@@ -1137,14 +1228,14 @@ begin
           if FBoardMap.TryGetValue(I,Point) then
             Result := Result and (Point = nil);
 
-          Result := Result and not SquareAttacked(I, True);
+          Result := Result and not IsSquareAttacked(I, True);
         end;
       end;
     end;
   end;
 end;
 
-function TChessBoard.SquareAttacked (Square : TChessCoordinate; ByWhite : Boolean) : Boolean;
+function TChessBoard.IsSquareAttacked (Square : TChessCoordinate; ByWhite : Boolean) : Boolean;
 var
   ARow, AColumn : Integer;
   I             : Integer;
@@ -1186,9 +1277,9 @@ begin
     end;
   end;
 
+  // Check Columns
   if not Result then
   begin
-    // Check Column
     for I := 1 to 8 do
     begin
       if (I <> ARow) and FBoardMap.TryGetValue(TBoard[AColumn][I], Piece) and
@@ -1219,16 +1310,16 @@ begin
     end;
   end;
 
+  // Check Left Up Diagonal
   if not Result then
   begin
-    // Check Left Up Diagonal
     R := ARow;
     C := AColumn;
     repeat
-      if R < 8 then
-        Inc(R);
-      if C > 1 then
-        Dec(C);
+      // Traverses until board ends
+      if R < 8 then Inc(R);
+      if C > 1 then Dec(C);
+
       if FBoardMap.TryGetValue(TBoard[C][R], Piece) and
          (Piece <> nil) then
       begin
@@ -1246,16 +1337,16 @@ begin
     until (R = 8) or (C = 1);
   end;
 
+  // Check Left Down Diagonal
   if not Result then
   begin
-    // Check Left Down Diagonal
     R := ARow;
     C := AColumn;
     repeat
-      if R > 1 then
-        Dec(R);
-      if C > 1 then
-        Dec(C);
+      // Traverses until board ends
+      if R > 1 then Dec(R);
+      if C > 1 then Dec(C);
+
       if FBoardMap.TryGetValue(TBoard[C][R], Piece) and
          (Piece <> nil) then
       begin
@@ -1272,16 +1363,16 @@ begin
     until (R = 1) or (C = 1);
   end;
 
+  // Check Right Up Diagonal
   if not Result then
   begin
-    // Check Right Up Diagonal
     R := ARow;
     C := AColumn;
     repeat
-      if R < 8 then
-        Inc(R);
-      if C < 8 then
-        Inc(C);
+      // Traverses until board ends
+      if R < 8 then Inc(R);
+      if C < 8 then Inc(C);
+
       if FBoardMap.TryGetValue(TBoard[C][R], Piece) and
          (Piece <> nil) then
       begin
@@ -1297,17 +1388,16 @@ begin
       end;
     until (R = 8) or (C = 8);
   end;
-
+  // Check Right Down Diagonal
   if not Result then
   begin
-    // Check Right Down Diagonal
     R := ARow;
     C := AColumn;
     repeat
-      if R > 1 then
-        Dec(R);
-      if C < 8 then
-        Inc(C);
+      // Traverses until board ends
+      if R > 1 then Dec(R);
+      if C < 8 then Inc(C);
+
       if FBoardMap.TryGetValue(TBoard[C][R], Piece) and
          (Piece <> nil) then
       begin
@@ -1324,7 +1414,7 @@ begin
     until (R = 1) or (C = 8);
   end;
 
-  // Check Horses
+  // Check Poneys
   if not Result then
   begin
     R := ARow;
@@ -1496,16 +1586,18 @@ function TGameStateHelper.ToString : String;
 begin
   case Self of
     gsNone                     : Result := 'None';
+    gsWhiteToMove              : Result := 'White to Move';
+    gsBlackToMove              : Result := 'Black to Move';
     gsWhiteInCheck             : Result := 'White in Check';
     gsBlackInCheck             : Result := 'Black in Check';
     gsWhiteWinsOnResign        : Result := 'White Wins (On Resign)';
     gsWhiteWinsOnMate          : Result := 'White Wins (On Mate)';
     gsWhiteWinsOnTime          : Result := 'White Wins (On Time)';
-    gsBlackWinsOnResign        : Result := 'Black Wins (On Resgin)';
+    gsBlackWinsOnResign        : Result := 'Black Wins (On Resign)';
     gsBlackWinsOnMate          : Result := 'Black Wins (On Mate)' ;
     gsBlackWinsOnTime          : Result := 'Black Wins (On Time)';
     gsDrawInsufficientMaterial : Result := 'Draw (Insufficient Material)';
-    gsDrawAgreement            : Result := 'Draw (Agrrement)';
+    gsDrawAgreement            : Result := 'Draw (Agreement)';
     gsDrawStaleMate            : Result := 'Draw (Stalamate)';
     gsDrawRepetition           : Result := 'Draw (DrawRepetition)';
   end;

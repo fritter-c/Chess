@@ -141,6 +141,10 @@
         <DCCReference Include="vclimg.dcp"/>
         <DCCReference Include="ChessBoard.pas"/>
         <DCCReference Include="..\source\ChessPieces.pas"/>
+        <DCCReference Include="..\source\PromotionForm.pas">
+            <Form>Promotion</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
         <RcItem Include="..\source\Images\BlackBishop.png">
             <ResourceType>RCDATA</ResourceType>
             <ResourceId>PngImage_1</ResourceId>
@@ -235,6 +239,12 @@
                 <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\21.0\Bpl\ChessComponents.bpl" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>ChessComponents.bpl</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\21.0\Bpl\Win64\ChessComponents.rsm" Configuration="Debug" Class="DebugSymbols">
+                    <Platform Name="Win64">
+                        <RemoteName>ChessComponents.rsm</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

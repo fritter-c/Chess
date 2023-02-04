@@ -135,6 +135,10 @@
         </DCCReference>
         <DCCReference Include="comps\ChessBoard.pas"/>
         <DCCReference Include="source\ChessPieces.pas"/>
+        <DCCReference Include="source\PromotionForm.pas">
+            <Form>Promotion</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
         <RcItem Include="source\Images\BlackBishop.png">
             <ResourceType>RCDATA</ResourceType>
             <ResourceId>PngImage_1</ResourceId>
@@ -233,6 +237,12 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
+                <DeployFile LocalName="source\Images\BlackPawn.png" Configuration="Debug" Class="ProjectFile">
+                    <Platform Name="Win64">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="source\Images\BlackRook.png" Configuration="Debug" Class="ProjectFile">
                     <Platform Name="Win64">
                         <RemoteDir>.\</RemoteDir>
@@ -252,12 +262,6 @@
                     </Platform>
                 </DeployFile>
                 <DeployFile LocalName="source\Images\WhiteKing.png" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win64">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="source\Images\BlackPawn.png" Configuration="Debug" Class="ProjectFile">
                     <Platform Name="Win64">
                         <RemoteDir>.\</RemoteDir>
                         <Overwrite>true</Overwrite>

@@ -30,6 +30,7 @@ type
     FDragging   : Boolean;
     FMoves      : Integer;
     FLastPos    : TChessCoordinate;
+    FEnPassant  : Boolean;
 
     procedure SetInitialPosition(APos : TChessCoordinate);
   public
@@ -49,6 +50,7 @@ type
     property X          : Integer          read FDragPos.X  write FDragPos.X;
     property Y          : Integer          read FDragPos.Y  write FDragPos.Y;
     property LastPos    : TChessCoordinate read FLastPos;
+    property EnPassant  : Boolean          read FEnPassant;
   end;
 
   TKnight = class(TChessPiece)
@@ -150,6 +152,7 @@ begin
   FCaptured := False;
   FMoved    := False;
   FMoves    := 0;
+  FEnPassant:= False;
 end;
 
 procedure TChessPiece.Undo;

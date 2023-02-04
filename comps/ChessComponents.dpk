@@ -35,7 +35,8 @@ requires
 
 contains
   ChessBoard in 'ChessBoard.pas',
-  ChessPieces in '..\source\ChessPieces.pas';
+  ChessPieces in '..\source\ChessPieces.pas',
+  PromotionForm in '..\source\PromotionForm.pas' {Promotion};
 
 end.
 
