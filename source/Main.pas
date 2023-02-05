@@ -19,6 +19,7 @@ uses
   Vcl.Buttons,
   SimpleClock,
   ChessGame,
+  ChessPieces,
   Vcl.ComCtrls;
 type
   TMainForm = class(TForm)
@@ -45,6 +46,7 @@ type
   private
     FGameState         : TGameState;
     FWhiteClockRunning : Boolean;
+
     procedure OnGameChanged(Status : TGameState);
     procedure OnNewMove(Move : TSimpleChessMove);
   public
@@ -58,6 +60,8 @@ var
 implementation
 
 uses
+  ChessClient,
+  ChessMessages,
   ConfigureForm;
 
 {$R *.dfm}
@@ -78,6 +82,8 @@ begin
   Clock_2.Increment   := EncodeTime(0,0,0,0);
   Clock_1.Reset;
   Clock_2.Reset;
+
+  CreateClient;
 end;
 
 procedure TMainForm.btnConfigureClick(Sender: TObject);
@@ -108,6 +114,7 @@ begin
   Clock_1.Reset;
   Clock_2.Reset;
   cbBoard.BlockBoard := True;
+  redtMoves.Clear;
 end;
 
 procedure TMainForm.btnPromotionFormClick(Sender: TObject);

@@ -32,9 +32,12 @@ type
   TSimpleChessMove = packed record
     Piece : TChessPieceName;
     Move  : TChessCoordinate;
+    From  : TChessCoordinate;
   end;
+  PSimpleChessMove = ^TSimpleChessMove;
+
   TSimpleChessMoveHelper = record helper for TSimpleChessMove
-  function ToString : String;
+  function ToString : String; inline;
   end;
   TAlgebraicChessMove = packed record
     Piece : TChessPieceName;
@@ -46,10 +49,18 @@ type
     RankD : Integer;
     Castle: Boolean;
   end;
+  TChessTimeConfig = packed record
+    White : Boolean;
+    Time  : TTime;
+    Inc   : TTime;
+  end;
+  PChessTimeConfig = ^TChessTimeConfig;
+
   TChessPlayer = record
     Moves    : Integer;
     TimeLeft : TTime;
     White    : Boolean;
+    Config   : PChessTimeConfig;
   end;
   PChessPlayer = ^TChessPlayer;
 
@@ -68,7 +79,7 @@ type
 
   procedure AddSnap(Game : PChessGame); inline;
   procedure SetLightBoard(Game : PChessGame); inline;
-  function  GetSimpleMove(ANow : TLightBoard; AThen : TLightBoard) : TSimpleChessMove; inline;
+  procedure SetState(Game : PChessGame; State : TGameState); inline;
 const
   TBoard : array [1..8] of array [1..8] of TChessCoordinate =
   ((a1, a2, a3, a4, a5, a6, a7, a8),
@@ -122,25 +133,13 @@ begin
   end;
 end;
 
-function GetSimpleMove(ANow : TLightBoard; AThen : TLightBoard) : TSimpleChessMove; inline;
-var
-  C,R : Integer;
-begin
-  Result.Piece := CHESS_NONE;
-  Result.Move  := a1;
-  for C := 1 to 8 do
-  for R := 1 to 8 do
-  begin
-    if (ANow[C][R] <> AThen[C][R]) and (AThen[C][R] <> CHESS_NONE)  then
-    begin
-      Result.Piece := AThen[C][R];
-      Result.Move  := TBoard[C][R];
-      Break;
-    end;
-  end;
-end;
 function TSimpleChessMoveHelper.ToString : String;
 begin
   Result := Self.Piece.ToString + ' to ' + Self.Move.ToString;
+end;
+
+procedure SetState(Game : PChessGame; State : TGameState); inline;
+begin
+  if Game.State <> State then Game.State := State; 
 end;
 end.

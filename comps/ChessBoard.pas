@@ -101,6 +101,7 @@ type
     procedure StartReplay;
 
     procedure Perform(Move : TSimpleChessMove);
+    procedure DispatchMove(Move : TSimpleChessMove);
   published
     property Align;
     property Anchors;
@@ -178,6 +179,8 @@ implementation
 uses
   Windows,
   PromotionForm,
+  ChessClient,
+  ChessMessages,
   Winapi.D2D1;
 
 procedure Register;
@@ -775,6 +778,8 @@ begin
 end;
 
 function TChessBoard.Castles(const A : TChessCoordinate; Piece : TChessPiece) : Boolean;
+var
+  Move : TSimpleChessMove;
 begin
   Result := False;
   if (Piece is TKing) and (not Piece.Moved) then
@@ -801,8 +806,15 @@ begin
               Inc(FMoves);
               AddSnap(FGame);
               SetLightBoard(FGame);
+
+              Move.Piece := WHITE_KING;
+              Move.From  := e1;
+              Move.Move  := c1;
+
               if Assigned(FOnNewMove) then
-                FOnNewMove(GetSimpleMove(FGame.PriorBoard,FGame.LightBoard));
+                FOnNewMove(Move);
+
+              DispatchMove(Move);
             end;
          end;
        end
@@ -826,8 +838,15 @@ begin
               Inc(FMoves);
               AddSnap(FGame);
               SetLightBoard(FGame);
+
+              Move.Piece := WHITE_KING;
+              Move.From  := e1;
+              Move.Move  := g1;
+
               if Assigned(FOnNewMove) then
-                FOnNewMove(GetSimpleMove(FGame.PriorBoard,FGame.LightBoard));
+                FOnNewMove(Move);
+
+              DispatchMove(Move);
             end;
          end;
        end;
@@ -854,8 +873,15 @@ begin
             Inc(FMoves);
             AddSnap(FGame);
             SetLightBoard(FGame);
+
+            Move.Piece := BLACK_KING;
+            Move.From  := e8;
+            Move.Move  := c8;
+
             if Assigned(FOnNewMove) then
-              FOnNewMove(GetSimpleMove(FGame.PriorBoard,FGame.LightBoard));
+              FOnNewMove(Move);
+
+            DispatchMove(Move);
           end;
         end;
       end
@@ -879,8 +905,15 @@ begin
              Inc(FMoves);
              AddSnap(FGame);
              SetLightBoard(FGame);
+
+             Move.Piece := BLACK_KING;
+             Move.From  := e8;
+             Move.Move  := g8;
+
              if Assigned(FOnNewMove) then
-               FOnNewMove(GetSimpleMove(FGame.PriorBoard,FGame.LightBoard));
+               FOnNewMove(Move);
+
+             DispatchMove(Move);
            end;
         end;
       end;
@@ -901,6 +934,7 @@ var
   TRow   : Integer; // Target Row
   TColumn: Integer; // Target Column;
   Target : TChessPiece;
+  Move   : TSimpleChessMove;
 begin
   Result := False;
   if Piece is TPawn then
@@ -917,8 +951,8 @@ begin
           if Target.EnPassant then
           begin
             Piece.Move(A, True);
-            MapBoard;
             Target.Captured := True;
+            MapBoard;
             if KingInCheck(FWhiteTurn) then
             begin
               Piece.Undo;
@@ -930,8 +964,15 @@ begin
               Inc(FMoves);
               AddSnap(FGame);
               SetLightBoard(FGame);
+
+              Move.Piece := Piece.Name;
+              Move.Move  := A;
+              Move.From  := Piece.LastPos;
+
               if Assigned(FOnNewMove) then
-                FOnNewMove(GetSimpleMove(FGame.PriorBoard,FGame.LightBoard));
+                FOnNewMove(Move);
+
+              DispatchMove(Move);
             end;
             Result := True;
           end;
@@ -1082,6 +1123,7 @@ var
   Piece      : TChessPiece;
   Captured   : TChessPiece;
   bCapture   : Boolean;
+  Move       : TSimpleChessMove;
 begin
   if FDragging and Assigned(FDragPiece) and (Button = mbLeft) then
   begin
@@ -1139,9 +1181,14 @@ begin
             FFirstMove := False;
             AddSnap(FGame);
             SetLightBoard(FGame);
-            if Assigned(FOnNewMove) then
-              FOnNewMove(GetSimpleMove(FGame.PriorBoard,FGame.LightBoard));
 
+            Move.Piece := FDragPiece.Name;
+            Move.Move  := Coordinate;
+            Move.From  := FDragPiece.LastPos;
+
+            if Assigned(FOnNewMove) then
+              FOnNewMove(Move);
+            DispatchMove(Move);
           end
           else begin
             // Cancel Promotion, Undo and ReMaps
@@ -1605,7 +1652,7 @@ begin
           exit
         end;
       end;
-      if (C + 1 >= 1) and (R - 1 >= 1) then
+      if (C + 1 <= 8) and (R - 1 >= 1) then
       begin
         Piece := FGame.Board[C + 1][R - 1];
         if (Piece <> nil) and (Piece is TPawn) and (Piece.White) then
@@ -1617,7 +1664,7 @@ begin
     end
     else
     begin
-      if (C + 1 >= 1) and (R - 1 >= 1) then
+      if (C + 1 <= 8) and (R - 1 >= 1) then
       begin
         Piece := FGame.Board[C + 1][R - 1];
         if (Piece <> nil) and (Piece is TPawn) and (not Piece.White) then
@@ -1626,7 +1673,7 @@ begin
           exit
         end;
       end;
-      if (C + 1 >= 1) and (R + 1 >= 1) then
+      if (C + 1 <= 8) and (R + 1 >= 1) then
       begin
         Piece := FGame.Board[C + 1][R + 1];
         if (Piece <> nil) and (Piece is TPawn) and (not Piece.White) then
@@ -1665,9 +1712,6 @@ begin
     else begin
       FReplayTimer.Enabled := False;
       FReplaying := False;
-      SetLightBoard(FGame);
-      if Assigned(FOnNewMove) then
-        FOnNewMove(GetSimpleMove(FGame.PriorBoard, FGame.LightBoard));
     end;
   end
   else begin
@@ -1703,9 +1747,10 @@ begin
   MovePiece:= nil;
   for I := Low(FPieces) to High(FPieces) do
   begin
-    if FPieces[I].Name = Move.Piece then
+    if (FPieces[I].Name = Move.Piece) and  (Move.From = FPieces[I].Position)then
     begin
       MovePiece := FPieces[I];
+      Break;
     end;
   end;
 
@@ -1761,7 +1806,7 @@ begin
         AddSnap(FGame);
         SetLightBoard(FGame);
         if Assigned(FOnNewMove) then
-          FOnNewMove(GetSimpleMove(FGame.PriorBoard,FGame.LightBoard));
+          FOnNewMove(Move);
       end
       else begin
         // Cancel Promotion, Undo and ReMaps
@@ -1779,6 +1824,16 @@ begin
 
   // Game ended, block inputs
   if FState > gsBlackInCheck then FBlockTable := True;
+end;
+
+procedure TChessBoard.DispatchMove(Move : TSimpleChessMove);
+var
+  PMove : PSimpleChessMove;
+begin
+  New(PMove);
+  PMove^ := Move;
+  if g_ChessClient <> nil then
+    PostThreadMessage(g_ChessClient.ThreadID, WM_NEW_MOVE, WPARAM(PMove), 0);
 end;
 
 function MapFromRowColumn(Row : Integer; Column : Integer) : TChessCoordinate;

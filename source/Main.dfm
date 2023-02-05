@@ -96,8 +96,6 @@ object MainForm: TMainForm
       Caption = 'Replay'
       TabOrder = 5
       OnClick = btnReplayClick
-      ExplicitLeft = 232
-      ExplicitTop = -1
     end
   end
   object pnl_Board: TPanel

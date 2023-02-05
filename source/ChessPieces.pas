@@ -305,9 +305,15 @@ end;
 constructor TRook.Create(bWhite : Boolean);
 begin
   inherited;
-  if FWhite
-    then LoadFromResourceName(HInstance,'PngImage_12')
-    else LoadFromResourceName(HInstance,'PngImage_6');
+  if FWhite then
+  begin
+    LoadFromResourceName(HInstance,'PngImage_12');
+    FName := WHITE_ROOK;
+  end
+  else begin
+    LoadFromResourceName(HInstance,'PngImage_6');
+    FName := BLACK_ROOK;
+  end;
 end;
 
 function TRook.CanMove(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
