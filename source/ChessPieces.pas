@@ -16,8 +16,18 @@ type
                       f1 = 6, f2 = 14, f3 = 22, f4 = 30, f5 = 38, f6 = 46, f7 = 54, f8 = 62,
                       g1 = 7, g2 = 15, g3 = 23, g4 = 31, g5 = 39, g6 = 47, g7 = 55, g8 = 63,
                       h1 = 8, h2 = 16, h3 = 24, h4 = 32, h5 = 40, h6 = 48, h7 = 56, h8 = 64);
+  TChessCoordinateHelper = record helper for TChessCoordinate
+  function ToString : String;
+  end;
 
   TSpecialSquares = set of TChessCoordinate;
+
+  TChessPieceName = (CHESS_NONE = 0, WHITE_PAWN, BLACK_PAWN, WHITE_KING, BLACK_KING, WHITE_QUEEN,
+                     BLACK_QUEEN, WHITE_KNIGHT, BLACK_KNIGHT, WHITE_BISHOP, BLACK_BISHOP,
+                     WHITE_ROOK, BLACK_ROOK);
+  TChessPieceNameHelper = record helper for TChessPieceName
+  function ToString : String;
+  end;
 
   TChessPiece = class(TPngImage)
   protected
@@ -31,15 +41,17 @@ type
     FMoves      : Integer;
     FLastPos    : TChessCoordinate;
     FEnPassant  : Boolean;
+    FName       : TChessPieceName;
 
     procedure SetInitialPosition(APos : TChessCoordinate);
   public
     constructor Create(bWhite : Boolean); virtual;
     function    CanMove(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; virtual; abstract;
-    function    Move(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean;
+    function    Move(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; virtual;
     procedure   Reset;
     procedure   Undo;
 
+    property Name       : TChessPieceName  read FName;
     property Position   : TChessCoordinate read FPosition   write FPosition;
     property White      : Boolean          read FWhite      write FWhite;
     property InitialPos : TChessCoordinate read FInitialPos write SetInitialPosition;
@@ -91,6 +103,7 @@ type
   public
     constructor Create(bWhite : Boolean); override;
     function CanMove(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
+    function Move(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
   end;
 
   function IsOnSameRow     (const A : TChessCoordinate; const B : TChessCoordinate) : Boolean; inline;
@@ -113,6 +126,8 @@ const
   TChessHColumn    : TSpecialSquares = [h1, h2, h3, h4, h5, h6, h7, h8];
 
 implementation
+uses
+ System.SysUtils;
 //ChessPiece//
 function TChessPiece.Move(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
 begin
@@ -167,9 +182,16 @@ end;
 constructor TBishop.Create(bWhite : Boolean);
 begin
   inherited;
-  if FWhite 
-    then LoadFromResourceName(HInstance,'PngImage_7')
-    else LoadFromResourceName(HInstance,'PngImage_1');
+  if FWhite then
+  begin
+    LoadFromResourceName(HInstance,'PngImage_7');
+    FName := WHITE_BISHOP;
+  end
+  else begin
+    LoadFromResourceName(HInstance,'PngImage_1');
+    FName := BLACK_BISHOP;
+  end;
+
 end;
 
 function TBishop.CanMove(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
@@ -182,9 +204,15 @@ end;
 constructor TKing.Create(bWhite : Boolean);
 begin
   inherited;
-  if FWhite
-    then LoadFromResourceName(HInstance,'PngImage_8')
-    else LoadFromResourceName(HInstance,'PngImage_2');
+  if FWhite then
+  begin
+    LoadFromResourceName(HInstance,'PngImage_8');
+    FName := WHITE_KING;
+  end
+  else begin
+    LoadFromResourceName(HInstance,'PngImage_2');
+    FName := BLACK_KING;
+  end;
 end;
 
 function TKing.CanMove(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
@@ -224,9 +252,15 @@ end;
 constructor TKnight.Create(bWhite : Boolean);
 begin
   inherited;
-  if FWhite
-    then LoadFromResourceName(HInstance,'PngImage_9')
-    else LoadFromResourceName(HInstance,'PngImage_3');
+  if FWhite then
+  begin
+    LoadFromResourceName(HInstance,'PngImage_9');
+    FName := WHITE_KNIGHT;
+  end
+  else begin
+    LoadFromResourceName(HInstance,'PngImage_3');
+    FName := BLACK_KNIGHT;
+  end;
 end;
 
 function TKnight.CanMove(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
@@ -249,9 +283,15 @@ end;
 constructor TQueen.Create(bWhite : Boolean);
 begin
   inherited;
-  if FWhite
-    then LoadFromResourceName(HInstance,'PngImage_11')
-    else LoadFromResourceName(HInstance,'PngImage_5');
+  if FWhite then
+  begin
+    LoadFromResourceName(HInstance,'PngImage_11');
+    FName := WHITE_QUEEN;
+  end
+  else begin
+    LoadFromResourceName(HInstance,'PngImage_5');
+    FName := BLACK_QUEEN;
+  end;
 end;
 
 function TQueen.CanMove(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
@@ -298,9 +338,15 @@ end;
 constructor TPawn.Create(bWhite : Boolean);
 begin
   inherited;
-  if FWhite
-    then LoadFromResourceName(HInstance,'PngImage_10')
-    else LoadFromResourceName(HInstance,'PngImage_4');
+  if FWhite then
+  begin
+    LoadFromResourceName(HInstance,'PngImage_10');
+    FName := WHITE_PAWN;
+  end
+  else begin
+    LoadFromResourceName(HInstance,'PngImage_4');
+    FName := BLACK_PAWN;
+  end;
 end;
 
 function TPawn.CanMove(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
@@ -328,20 +374,31 @@ begin
  end;
 end;
 
+function TPawn.Move(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean;
+begin
+  Result := inherited;
+  if Result then
+  begin
+    if FWhite
+      then if Integer(FPosition) = Integer(FLastPos) + 16 then FEnPassant := True else FEnPassant := False
+      else if Integer(FPosition) = Integer(FLastPos) - 16 then FEnPassant := True else FEnPassant := False
+  end;
+end;
+
 //Pawn//
 
 //Functions//
-function IsOnSameColumn(const A : TChessCoordinate; const B : TChessCoordinate) : Boolean;
+function IsOnSameColumn(const A : TChessCoordinate; const B : TChessCoordinate) : Boolean; inline;
 begin
   Result := GetColumn(B) = GetColumn(A);
 end;
 
-function IsOnSameRow(const A : TChessCoordinate; const B : TChessCoordinate) : Boolean;
+function IsOnSameRow(const A : TChessCoordinate; const B : TChessCoordinate) : Boolean; inline;
 begin
   Result := GetRow(B) = GetRow(A);
 end;
 
-function IsOnSameDiagonal(const A : TChessCoordinate; const B : TChessCoordinate) : Boolean;
+function IsOnSameDiagonal(const A : TChessCoordinate; const B : TChessCoordinate) : Boolean; inline;
 var
   ColA, RowA : Integer;
   ColB, RowB : Integer;
@@ -407,6 +464,34 @@ begin
   else
     Result := 8;
   end;
+end;
+
+function TChessPieceNameHelper.ToString : String;
+begin
+  case Self of
+    WHITE_PAWN   : Result := 'White Pawn';
+    BLACK_PAWN   : Result := 'Black Pawn';
+    WHITE_KING   : Result := 'White King';
+    BLACK_KING   : Result := 'Black King';
+    WHITE_QUEEN  : Result := 'White Queen';
+    BLACK_QUEEN  : Result := 'Black Queen';
+    WHITE_KNIGHT : Result := 'White Knight';
+    BLACK_KNIGHT : Result := 'Black Knight';
+    WHITE_BISHOP : Result := 'White Bishop';
+    BLACK_BISHOP : Result := 'Black Bishop';
+    WHITE_ROOK   : Result := 'White Rook';
+    BLACK_ROOK   : Result := 'Black Rook';
+    CHESS_NONE   : Result := 'None';
+  end;
+end;
+
+function TChessCoordinateHelper.ToString: String;
+var
+  Row, Column : Integer;
+begin
+  Row    := GetRow(Self);
+  Column := GetColumn(Self);
+  Result := Char(Column + 96) + IntToStr(Row);
 end;
 //Functions//
 end.

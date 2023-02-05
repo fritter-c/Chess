@@ -134,11 +134,16 @@
             <Form>MainForm</Form>
         </DCCReference>
         <DCCReference Include="comps\ChessBoard.pas"/>
+        <DCCReference Include="comps\SimpleClock.pas"/>
         <DCCReference Include="source\ChessPieces.pas"/>
         <DCCReference Include="source\PromotionForm.pas">
             <Form>Promotion</Form>
+        </DCCReference>
+        <DCCReference Include="source\ConfigureForm.pas">
+            <Form>FormConfigure</Form>
             <FormType>dfm</FormType>
         </DCCReference>
+        <DCCReference Include="source\ChessGame.pas"/>
         <RcItem Include="source\Images\BlackBishop.png">
             <ResourceType>RCDATA</ResourceType>
             <ResourceId>PngImage_1</ResourceId>
@@ -237,15 +242,9 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="source\Images\BlackPawn.png" Configuration="Debug" Class="ProjectFile">
+                <DeployFile LocalName="Win64\Debug\ChessEngine.rsm" Configuration="Debug" Class="DebugSymbols">
                     <Platform Name="Win64">
-                        <RemoteDir>.\</RemoteDir>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="source\Images\BlackRook.png" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win64">
-                        <RemoteDir>.\</RemoteDir>
+                        <RemoteName>ChessEngine.rsm</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
@@ -255,13 +254,19 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="Win64\Debug\ChessEngine.rsm" Configuration="Debug" Class="DebugSymbols">
+                <DeployFile LocalName="source\Images\BlackPawn.png" Configuration="Debug" Class="ProjectFile">
                     <Platform Name="Win64">
-                        <RemoteName>ChessEngine.rsm</RemoteName>
+                        <RemoteDir>.\</RemoteDir>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
                 <DeployFile LocalName="source\Images\WhiteKing.png" Configuration="Debug" Class="ProjectFile">
+                    <Platform Name="Win64">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="source\Images\BlackRook.png" Configuration="Debug" Class="ProjectFile">
                     <Platform Name="Win64">
                         <RemoteDir>.\</RemoteDir>
                         <Overwrite>true</Overwrite>

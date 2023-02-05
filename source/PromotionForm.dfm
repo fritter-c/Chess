@@ -6,6 +6,7 @@ object Promotion: TPromotion
   ClientHeight = 568
   ClientWidth = 118
   Color = clBtnFace
+  DoubleBuffered = True
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11

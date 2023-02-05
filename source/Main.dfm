@@ -2,8 +2,8 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'Chess'
-  ClientHeight = 839
-  ClientWidth = 983
+  ClientHeight = 835
+  ClientWidth = 979
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -17,7 +17,7 @@ object MainForm: TMainForm
   object pnl_Status: TPanel
     Left = 0
     Top = 0
-    Width = 983
+    Width = 979
     Height = 41
     Align = alTop
     TabOrder = 0
@@ -46,7 +46,7 @@ object MainForm: TMainForm
       OnClick = btnNewGameClick
     end
     object btnFlip: TButton
-      Left = 907
+      Left = 903
       Top = 1
       Width = 75
       Height = 39
@@ -56,7 +56,7 @@ object MainForm: TMainForm
       OnClick = btnFlipClick
     end
     object btnPromotionForm: TButton
-      Left = 832
+      Left = 828
       Top = 1
       Width = 75
       Height = 39
@@ -73,13 +73,38 @@ object MainForm: TMainForm
       Align = alLeft
       Caption = 'Start'
       TabOrder = 3
+      OnClick = btnStartClick
+    end
+    object btnConfigure: TBitBtn
+      Left = 151
+      Top = 1
+      Width = 75
+      Height = 39
+      Align = alLeft
+      Caption = 'Configure'
+      ModalResult = 5
+      NumGlyphs = 2
+      TabOrder = 4
+      OnClick = btnConfigureClick
+    end
+    object btnReplay: TButton
+      Left = 226
+      Top = 1
+      Width = 75
+      Height = 39
+      Align = alLeft
+      Caption = 'Replay'
+      TabOrder = 5
+      OnClick = btnReplayClick
+      ExplicitLeft = 232
+      ExplicitTop = -1
     end
   end
   object pnl_Board: TPanel
     Left = 185
     Top = 41
-    Width = 798
-    Height = 798
+    Width = 794
+    Height = 794
     Margins.Left = 0
     Margins.Top = 0
     Margins.Right = 0
@@ -87,15 +112,15 @@ object MainForm: TMainForm
     Align = alClient
     Constraints.MaxHeight = 798
     Constraints.MaxWidth = 798
-    Constraints.MinHeight = 798
-    Constraints.MinWidth = 798
+    Constraints.MinHeight = 794
+    Constraints.MinWidth = 794
     TabOrder = 1
     object cbBoard: TChessBoard
       Left = 1
       Top = 1
       Width = 792
       Height = 792
-      Align = alCustom
+      Align = alClient
       BevelEdges = []
       BevelInner = bvNone
       BevelOuter = bvNone
@@ -111,13 +136,60 @@ object MainForm: TMainForm
       TabOrder = 0
     end
   end
-  object pnl_Moves: TPanel
+  object pnl_SidePanel: TPanel
     Left = 0
     Top = 41
     Width = 185
-    Height = 798
+    Height = 794
     Align = alLeft
-    Caption = 'pnl_Moves'
+    Caption = 'pnl_SidePanel'
     TabOrder = 2
+    object Clock_2: TSimpleClock
+      Left = 1
+      Top = 736
+      Width = 183
+      Height = 57
+      Align = alBottom
+      Caption = 'Clock_2'
+      Color = clBtnFace
+      UseDockManager = False
+      DoubleBuffered = True
+      ParentBackground = True
+      ParentColor = False
+      ParentDoubleBuffered = False
+      TabOrder = 0
+    end
+    object Clock_1: TSimpleClock
+      Left = 1
+      Top = 1
+      Width = 183
+      Height = 57
+      Align = alTop
+      Caption = 'Clock_1'
+      Color = clBtnFace
+      UseDockManager = False
+      DoubleBuffered = True
+      ParentBackground = False
+      ParentColor = False
+      ParentDoubleBuffered = False
+      TabOrder = 1
+    end
+    object redtMoves: TRichEdit
+      Left = 1
+      Top = 58
+      Width = 183
+      Height = 678
+      Align = alClient
+      Color = clMenuBar
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentFont = False
+      ReadOnly = True
+      TabOrder = 2
+      Zoom = 100
+    end
   end
 end
