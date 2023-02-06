@@ -30,27 +30,38 @@ type
     cbBoard         : TChessBoard;
     lblStatus       : TLabel;
     btnFlip         : TButton;
-    btnPromotionForm: TButton;
     btnStart        : TButton;
     Clock_2         : TSimpleClock;
     Clock_1         : TSimpleClock;
     redtMoves       : TRichEdit;
     btnConfigure    : TBitBtn;
     btnReplay       : TButton;
+    btnConnect      : TButton;
+    lblConnectionStatus: TLabel;
+    pnlStatus          : TPanel;
     procedure btnNewGameClick(Sender: TObject);
     procedure btnFlipClick(Sender: TObject);
     procedure btnPromotionFormClick(Sender: TObject);
     procedure btnConfigureClick(Sender: TObject);
     procedure btnStartClick(Sender: TObject);
     procedure btnReplayClick(Sender: TObject);
+    procedure btnConnectClick(Sender: TObject);
+
   private
     FGameState         : TGameState;
     FWhiteClockRunning : Boolean;
+    FHandle            : HWND;
 
     procedure OnGameChanged(Status : TGameState);
     procedure OnNewMove(Move : TSimpleChessMove);
+    procedure ProcessMessage(var Msg : TMessage);
+    procedure ProcessNewMove(var Msg : TMessage);
+    procedure ConnectionChanged;
   public
     constructor Create(AOwner: TComponent); override;
+    destructor  Destroy; override;
+
+    property MainHandle : HWND read FHandle;
 
 end;
 
@@ -62,6 +73,7 @@ implementation
 uses
   ChessClient,
   ChessMessages,
+  OverbyteICSWSocket,
   ConfigureForm;
 
 {$R *.dfm}
@@ -70,11 +82,6 @@ begin
   inherited Create(AOwner);
   cbBoard.OnGameChanged := OnGameChanged;
   cbBoard.OnNewMove     := OnNewMove;
-{$IFDEF DEBUG}
-  btnPromotionForm.Visible := True;
-{$ELSE}
-  btnPromotionForm.Visible := False;
-{$ENDIF}
   cbBoard.BlockBoard := True;
   Clock_1.StarterTime := EncodeTime(0,5,0,0);
   Clock_2.StarterTime := EncodeTime(0,5,0,0);
@@ -83,8 +90,16 @@ begin
   Clock_1.Reset;
   Clock_2.Reset;
 
+  FHandle := AllocateHwnd(ProcessMessage);
   CreateClient;
+  g_ChessClient.FreeOnTerminate := True;
 end;
+
+destructor TMainForm.Destroy;
+begin
+  g_ChessClient.Terminate;
+end;
+
 
 procedure TMainForm.btnConfigureClick(Sender: TObject);
 begin
@@ -99,6 +114,11 @@ begin
     Clock_2.Reset;
     Free;
   end;
+end;
+
+procedure TMainForm.btnConnectClick(Sender: TObject);
+begin
+  PostThreadMessage(g_ChessClient.ThreadID, WM_CONNECT, 0, 0);
 end;
 
 procedure TMainForm.btnFlipClick(Sender: TObject);
@@ -180,4 +200,33 @@ procedure TMainForm.OnNewMove(Move : TSimpleChessMove);
 begin
   redtMoves.Lines.Add(Move.ToString);
 end;
+
+procedure TMainForm.ProcessMessage(var Msg : TMessage);
+begin
+  case Msg.Msg of
+    WM_CONNECTIONCHANGED : ConnectionChanged;
+    WM_PROCESS_NEW_MOVE  : ProcessNewMove(Msg);
+  end;
+end;
+
+procedure TMainForm.ProcessNewMove(var Msg : TMessage);
+var
+  Move : TSimpleChessMove;
+begin
+  Move := PSimpleChessMOve(Msg.WParam)^;
+  Dispose(PSimpleChessMOve(Msg.WParam));
+  cbBoard.Perform(Move);
+end;
+
+procedure TMainForm.ConnectionChanged;
+begin
+  case g_ChessClient.Socket.State of
+     wsOpened     : lblConnectionStatus.Caption := 'Opened';
+     wsConnecting : lblConnectionStatus.Caption := 'Connecting';
+     wsListening  : lblConnectionStatus.Caption := 'Listening';
+     wsClosed     : lblConnectionStatus.Caption := 'Closed';
+     wsConnected  : lblConnectionStatus.Caption := 'Connected';
+  end;
+end;
 end.
+

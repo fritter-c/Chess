@@ -1,0 +1,86 @@
+object MainForm: TMainForm
+  Left = 0
+  Top = 0
+  Caption = 'MainForm'
+  ClientHeight = 198
+  ClientWidth = 371
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  OldCreateOrder = False
+  PixelsPerInch = 96
+  TextHeight = 13
+  object lblClients: TLabel
+    Left = 280
+    Top = 160
+    Width = 45
+    Height = 13
+    Caption = 'Clients: 0'
+  end
+  object redtOutPut: TRichEdit
+    Left = 8
+    Top = 8
+    Width = 257
+    Height = 182
+    Font.Charset = ANSI_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
+    TabOrder = 0
+    Zoom = 100
+  end
+  object btnActivate: TButton
+    Left = 271
+    Top = 8
+    Width = 89
+    Height = 33
+    Caption = 'Activate'
+    TabOrder = 1
+    OnClick = btnActivateClick
+  end
+  object btnClose: TButton
+    Left = 271
+    Top = 47
+    Width = 89
+    Height = 34
+    Caption = 'Close'
+    TabOrder = 2
+    OnClick = btnCloseClick
+  end
+  object ssSocket: TWSocketServer
+    LineEnd = #13#10
+    Addr = '127.0.0.1'
+    Port = '8080'
+    Proto = 'tcp'
+    LocalAddr = '127.0.0.1'
+    LocalAddr6 = '::'
+    LocalPort = '8080'
+    MultiCast = True
+    SocksLevel = '5'
+    ReuseAddr = True
+    ExclusiveAddr = False
+    ComponentOptions = []
+    ListenBacklog = 15
+    ReqVerLow = 1
+    ReqVerHigh = 1
+    OnDataAvailable = ssSocketDataAvailable
+    OnDataSent = ssSocketDataSent
+    OnSendData = ssSocketSendData
+    OnSessionClosed = ssSocketSessionClosed
+    OnSessionAvailable = ssSocketSessionAvailable
+    OnSessionConnected = ssSocketSessionConnected
+    SocketErrs = wsErrTech
+    MaxClients = 2
+    OnClientDisconnect = ssSocketClientDisconnect
+    OnClientConnect = ssSocketClientConnect
+    OnClientCreate = ssSocketClientCreate
+    MultiListenSockets = <>
+    Left = 296
+    Top = 104
+  end
+end

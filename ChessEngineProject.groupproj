@@ -9,6 +9,9 @@
         <Projects Include="comps\ChessComponents.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="server\ChessServer.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -35,14 +38,23 @@
     <Target Name="ChessComponents:Make">
         <MSBuild Projects="comps\ChessComponents.dproj" Targets="Make"/>
     </Target>
+    <Target Name="ChessServer">
+        <MSBuild Projects="server\ChessServer.dproj"/>
+    </Target>
+    <Target Name="ChessServer:Clean">
+        <MSBuild Projects="server\ChessServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ChessServer:Make">
+        <MSBuild Projects="server\ChessServer.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="ChessEngine;ChessComponents"/>
+        <CallTarget Targets="ChessEngine;ChessComponents;ChessServer"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="ChessEngine:Clean;ChessComponents:Clean"/>
+        <CallTarget Targets="ChessEngine:Clean;ChessComponents:Clean;ChessServer:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="ChessEngine:Make;ChessComponents:Make"/>
+        <CallTarget Targets="ChessEngine:Make;ChessComponents:Make;ChessServer:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

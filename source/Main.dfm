@@ -22,7 +22,7 @@ object MainForm: TMainForm
     Align = alTop
     TabOrder = 0
     object lblStatus: TLabel
-      Left = 484
+      Left = 307
       Top = 7
       Width = 45
       Height = 21
@@ -55,16 +55,6 @@ object MainForm: TMainForm
       TabOrder = 1
       OnClick = btnFlipClick
     end
-    object btnPromotionForm: TButton
-      Left = 828
-      Top = 1
-      Width = 75
-      Height = 39
-      Align = alRight
-      Caption = 'Promotion'
-      TabOrder = 2
-      OnClick = btnPromotionFormClick
-    end
     object btnStart: TButton
       Left = 76
       Top = 1
@@ -72,7 +62,7 @@ object MainForm: TMainForm
       Height = 39
       Align = alLeft
       Caption = 'Start'
-      TabOrder = 3
+      TabOrder = 2
       OnClick = btnStartClick
     end
     object btnConfigure: TBitBtn
@@ -84,7 +74,7 @@ object MainForm: TMainForm
       Caption = 'Configure'
       ModalResult = 5
       NumGlyphs = 2
-      TabOrder = 4
+      TabOrder = 3
       OnClick = btnConfigureClick
     end
     object btnReplay: TButton
@@ -94,8 +84,43 @@ object MainForm: TMainForm
       Height = 39
       Align = alLeft
       Caption = 'Replay'
-      TabOrder = 5
+      TabOrder = 4
       OnClick = btnReplayClick
+    end
+    object btnConnect: TButton
+      Left = 828
+      Top = 1
+      Width = 75
+      Height = 39
+      Align = alRight
+      Caption = 'Connect'
+      TabOrder = 5
+      OnClick = btnConnectClick
+    end
+    object pnlStatus: TPanel
+      Left = 643
+      Top = 1
+      Width = 185
+      Height = 39
+      Align = alRight
+      Caption = 'pnlStatus'
+      ShowCaption = False
+      TabOrder = 6
+      object lblConnectionStatus: TLabel
+        Left = 1
+        Top = 1
+        Width = 5
+        Height = 21
+        Align = alClient
+        Alignment = taCenter
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -17
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        ParentFont = False
+        Layout = tlCenter
+      end
     end
   end
   object pnl_Board: TPanel

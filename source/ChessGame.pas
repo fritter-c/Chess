@@ -77,6 +77,12 @@ type
   end;
   PChessGame = ^TChessGame;
 
+  TChessPromote = packed record
+    Move      : TSimpleChessMove;
+    PromoteTo : TChessPieceName;
+  end;
+  PChessPromote = ^TChessPromote;
+
   procedure AddSnap(Game : PChessGame); inline;
   procedure SetLightBoard(Game : PChessGame); inline;
   procedure SetState(Game : PChessGame; State : TGameState); inline;
