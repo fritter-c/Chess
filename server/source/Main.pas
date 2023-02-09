@@ -21,40 +21,39 @@ uses
 
 type
   PByteArray = array of Byte;
+
   TMainForm = class(TForm)
-    ssSocket    : TWSocketServer;
     redtOutPut  : TRichEdit;
     btnActivate : TButton;
     btnClose    : TButton;
     lblClients  : TLabel;
+    ssSocket    : TWSocketServer;
 
     procedure ssSocketSessionAvailable(Sender: TObject; ErrCode: Word);
-    procedure ssSocketClientConnect(Sender: TObject; Client: TWSocketClient;
-      Error: Word);
-    procedure ssSocketDataAvailable(Sender: TObject; ErrCode: Word);
-    procedure btnActivateClick(Sender: TObject);
-    procedure ssSocketDataSent(Sender: TObject; ErrCode: Word);
-    procedure btnCloseClick(Sender: TObject);
-    procedure ssSocketClientDisconnect(Sender: TObject; Client: TWSocketClient;
-      Error: Word);
-    procedure ssSocketClientCreate(Sender: TObject; Client: TWSocketClient);
-    procedure ssSocketSessionClosed(Sender: TObject; ErrCode: Word);
+    procedure ssSocketClientConnect   (Sender: TObject; Client: TWSocketClient; Error: Word);
+    procedure ssSocketDataAvailable   (Sender: TObject; ErrCode: Word);
+    procedure btnActivateClick        (Sender: TObject);
+    procedure ssSocketDataSent        (Sender: TObject; ErrCode: Word);
+    procedure btnCloseClick           (Sender: TObject);
+    procedure ssSocketClientDisconnect(Sender: TObject; Client: TWSocketClient; Error: Word);
+    procedure ssSocketClientCreate    (Sender: TObject; Client: TWSocketClient);
+    procedure ssSocketSessionClosed   (Sender: TObject; ErrCode: Word);
     procedure ssSocketSessionConnected(Sender: TObject; ErrCode: Word);
-    procedure ssSocketSendData(Sender: TObject; BytesSent: Integer);
+    procedure ssSocketSendData        (Sender: TObject; BytesSent: Integer);
   private
     FClients : TList<TWSocketClient>;
-    procedure ConnectionDataAvailable(Sender: TObject;
-  ErrCode: Word);
-    procedure HandleClientMove(Data : PByteArray; Size : Integer; Sender : TWSocketClient);
+    procedure ConnectionDataAvailable(Sender: TObject; ErrCode: Word);
+    procedure HandleClientMove       (Data : PByteArray; Size : Integer; Sender : TWSocketClient);
   public
     constructor Create(Owner : TComponent); override;
-    destructor Destroy; override;
+    destructor  Destroy; override;
   end;
 
 var
   MainForm: TMainForm;
 const
   c_ClientNewMove = 1;
+
 implementation
 
 {$R *.dfm}
@@ -69,11 +68,8 @@ destructor TMainForm.Destroy;
 var
   I : Integer;
 begin
-  for  I := 0 to FClients.Count - 1  do
-  begin
-     FClients[i].Free;
-  end;
   FClients.Free;
+  inherited;
 end;
 
 procedure TMainForm.btnActivateClick(Sender: TObject);
@@ -86,8 +82,7 @@ begin
   end;
 end;
 
-procedure TMainForm.ConnectionDataAvailable(Sender: TObject;
-  ErrCode: Word);
+procedure TMainForm.ConnectionDataAvailable(Sender: TObject; ErrCode: Word);
 var
   RcvBuf : Integer;
   Data   : PByteArray;
@@ -101,7 +96,7 @@ end;
 
 procedure TMainForm.HandleClientMove(Data : PByteArray; Size : Integer; Sender : TWSocketClient);
 var
-  I : Integer;
+  I      : Integer;
   Buffer : array of Byte;
 begin
   SetLength(Buffer, Size);
@@ -128,10 +123,8 @@ begin
   lblClients.Caption := 'Clients: ' + IntToStr(FClients.Count);
 end;
 
-procedure TMainForm.ssSocketClientCreate(Sender: TObject;
-  Client: TWSocketClient);
+procedure TMainForm.ssSocketClientCreate(Sender: TObject; Client: TWSocketClient);
 begin
-  // do something
  redtOutPut.Lines.Add('Client Created');
  if FClients.IndexOf(Client) < 0 then
     FClients.Add(Client);

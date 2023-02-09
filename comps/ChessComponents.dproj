@@ -6,7 +6,7 @@
         <FrameworkType>VCL</FrameworkType>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
-        <Platform Condition="'$(Platform)'==''">Win64</Platform>
+        <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Package</AppType>
     </PropertyGroup>
@@ -147,6 +147,16 @@
         </DCCReference>
         <DCCReference Include="SimpleClock.pas"/>
         <DCCReference Include="..\source\ChessGame.pas"/>
+        <DCCReference Include="..\source\ChessClient.pas"/>
+        <DCCReference Include="..\source\ChessMessages.pas"/>
+        <DCCReference Include="..\source\Main.pas">
+            <Form>MainForm</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="..\source\ConfigureForm.pas">
+            <Form>FormConfigure</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
         <RcItem Include="..\source\Images\BlackBishop.png">
             <ResourceType>RCDATA</ResourceType>
             <ResourceId>PngImage_1</ResourceId>

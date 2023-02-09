@@ -23,28 +23,28 @@ uses
   Vcl.ComCtrls;
 type
   TMainForm = class(TForm)
-    pnl_Board       : TPanel;
-    pnl_SidePanel   : TPanel;
-    pnl_Status      : TPanel;
-    btnNewGame      : TButton;
-    cbBoard         : TChessBoard;
-    lblStatus       : TLabel;
-    btnFlip         : TButton;
-    btnStart        : TButton;
-    Clock_2         : TSimpleClock;
-    Clock_1         : TSimpleClock;
-    redtMoves       : TRichEdit;
-    btnConfigure    : TBitBtn;
-    btnReplay       : TButton;
-    btnConnect      : TButton;
+    pnl_Board          : TPanel;
+    pnl_SidePanel      : TPanel;
+    pnl_Status         : TPanel;
+    btnNewGame         : TButton;
+    lblStatus          : TLabel;
+    btnFlip            : TButton;
+    btnStart           : TButton;
+    redtMoves          : TRichEdit;
+    btnConfigure       : TBitBtn;
+    btnReplay          : TButton;
+    btnConnect         : TButton;
     lblConnectionStatus: TLabel;
     pnlStatus          : TPanel;
-    procedure btnNewGameClick(Sender: TObject);
-    procedure btnFlipClick(Sender: TObject);
+    cbBoard            : TChessBoard;
+    Clock_2            : TSimpleClock;
+    Clock_1            : TSimpleClock;
+    procedure btnNewGameClick      (Sender: TObject);
+    procedure btnFlipClick         (Sender: TObject);
     procedure btnPromotionFormClick(Sender: TObject);
-    procedure btnConfigureClick(Sender: TObject);
-    procedure btnStartClick(Sender: TObject);
-    procedure btnReplayClick(Sender: TObject);
+    procedure btnConfigureClick    (Sender: TObject);
+    procedure btnStartClick  (Sender: TObject);
+    procedure btnReplayClick (Sender: TObject);
     procedure btnConnectClick(Sender: TObject);
 
   private
@@ -52,8 +52,8 @@ type
     FWhiteClockRunning : Boolean;
     FHandle            : HWND;
 
-    procedure OnGameChanged(Status : TGameState);
-    procedure OnNewMove(Move : TSimpleChessMove);
+    procedure OnGameChanged (Status : TGameState);
+    procedure OnNewMove     (Move : TSimpleChessMove);
     procedure ProcessMessage(var Msg : TMessage);
     procedure ProcessNewMove(var Msg : TMessage);
     procedure ConnectionChanged;
@@ -62,7 +62,6 @@ type
     destructor  Destroy; override;
 
     property MainHandle : HWND read FHandle;
-
 end;
 
 var
@@ -80,19 +79,21 @@ uses
 constructor TMainForm.Create(AOwner : TComponent);
 begin
   inherited Create(AOwner);
+
   cbBoard.OnGameChanged := OnGameChanged;
   cbBoard.OnNewMove     := OnNewMove;
-  cbBoard.BlockBoard := True;
-  Clock_1.StarterTime := EncodeTime(0,5,0,0);
-  Clock_2.StarterTime := EncodeTime(0,5,0,0);
-  Clock_1.Increment   := EncodeTime(0,0,0,0);
-  Clock_2.Increment   := EncodeTime(0,0,0,0);
+  cbBoard.BlockBoard    := True;
+
+  Clock_1.StarterTime   := EncodeTime(0,5,0,0);
+  Clock_2.StarterTime   := EncodeTime(0,5,0,0);
+  Clock_1.Increment     := EncodeTime(0,0,0,0);
+  Clock_2.Increment     := EncodeTime(0,0,0,0);
   Clock_1.Reset;
   Clock_2.Reset;
 
   FHandle := AllocateHwnd(ProcessMessage);
+
   CreateClient;
-  g_ChessClient.FreeOnTerminate := True;
 end;
 
 destructor TMainForm.Destroy;
@@ -106,12 +107,16 @@ begin
   with TFormConfigure.Create(Self) do
   begin
     ShowModal;
+
     Clock_1.StarterTime := GetBlackTime;
     Clock_1.Increment   := GetBlackInc;
+
     Clock_2.StarterTime := GetWhiteTime;
     Clock_2.Increment   := GetWhiteInc;
+
     Clock_1.Reset;
     Clock_2.Reset;
+
     Free;
   end;
 end;

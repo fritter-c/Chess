@@ -54,20 +54,16 @@ object MainForm: TMainForm
   end
   object ssSocket: TWSocketServer
     LineEnd = #13#10
-    Addr = '127.0.0.1'
+    Addr = '0.0.0.0'
     Port = '8080'
     Proto = 'tcp'
-    LocalAddr = '127.0.0.1'
+    LocalAddr = '0.0.0.0'
     LocalAddr6 = '::'
-    LocalPort = '8080'
-    MultiCast = True
+    LocalPort = '0'
     SocksLevel = '5'
-    ReuseAddr = True
     ExclusiveAddr = False
     ComponentOptions = []
     ListenBacklog = 15
-    ReqVerLow = 1
-    ReqVerHigh = 1
     OnDataAvailable = ssSocketDataAvailable
     OnDataSent = ssSocketDataSent
     OnSendData = ssSocketSendData
@@ -75,12 +71,10 @@ object MainForm: TMainForm
     OnSessionAvailable = ssSocketSessionAvailable
     OnSessionConnected = ssSocketSessionConnected
     SocketErrs = wsErrTech
-    MaxClients = 2
     OnClientDisconnect = ssSocketClientDisconnect
-    OnClientConnect = ssSocketClientConnect
     OnClientCreate = ssSocketClientCreate
     MultiListenSockets = <>
-    Left = 296
+    Left = 304
     Top = 104
   end
 end

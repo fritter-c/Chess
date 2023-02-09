@@ -65,8 +65,8 @@ type
                            var ACapture : TChessPiece; bJustPeek : Boolean = False) : Boolean;
     function  CheckObstacles(const A, B : TChessCoordinate; bWhite : Boolean) : Boolean;
     procedure CheckKings;
-    function  Castles  (const A : TChessCoordinate; Piece : TChessPiece) : Boolean;
-    function  EnPassant(const A : TChessCoordinate; Piece : TChessPiece) : Boolean;
+    function  Castles    (const A : TChessCoordinate; Piece : TChessPiece) : Boolean;
+    function  EnPassant  (const A : TChessCoordinate; Piece : TChessPiece) : Boolean;
     function  KingInCheck(bWhite : Boolean) : Boolean;
     function  GetAvailableMoves(Piece : TChessPiece) : Boolean;
     function  CheckForMate(bWhite : Boolean) : Boolean;
@@ -119,7 +119,7 @@ type
     property Ctl3D;
     property UseDockManager default True;
     property DockSite;
-    property DoubleBuffered;
+    property DoubleBuffered default True;
     property DragCursor;
     property DragKind;
     property DragMode;
@@ -174,8 +174,6 @@ type
 const
   TGameTurn : set of TGameState = [gsWhiteToMove, gsBlackToMove];
 implementation
-
-
 uses
   Windows,
   PromotionForm,
@@ -187,6 +185,7 @@ procedure Register;
 begin
   RegisterComponents('ChessComponents', [TChessBoard]);
 end;
+
 constructor TChessBoard.Create(AOwner : TComponent);
 begin
   inherited Create(AOwner);
@@ -200,6 +199,7 @@ begin
   FState       := gsNone;
   FFlipped     := False;
   FReplayIndex := 0;
+
   New(FGame);
   FAvailableMoves := TList<TChessCoordinate>.Create;
   FHasPromoted    := False;
@@ -285,8 +285,9 @@ begin
     end;
   end
   else
-   inherited;
+    inherited;
 end;
+
 procedure TChessBoard.WmSize(var Message: TWMSize);
 var
   Size : TD2D1SizeU;
@@ -499,25 +500,28 @@ var
 begin
   FMap.Clear;
   nSquareHeight := Height div 8;
-  X := 0;
-  Y := Height - nSquareHeight;
+
   if FFlipped then
   begin
-    for I := 64 downto 1 do
+    X := 0;
+    Y := 0;
+    for I := 1 to 64 do
     begin
       FMap.Add(TChessCoordinate(I), Point(X,Y));
-      if I mod 8 <> 0 then
+      if (I mod 8 <> 0) then
       begin
         X := X + nSquareHeight;
       end
       else
       begin
         X := 0;
-        Y := Y - nSquareHeight;
+        Y := Y + nSquareHeight;
       end;
     end;
   end
   else begin
+    X := 0;
+    Y := Height - nSquareHeight;
     for I := 1 to 64 do
     begin
       FMap.Add(TChessCoordinate(I), Point(X,Y));
@@ -570,8 +574,9 @@ function TChessBoard.CheckMove(const A, B : TChessCoordinate; ChessPiece : TChes
 var
   Piece : TChessPiece;
 begin
-  Result := True;
+  Result   := True;
   ACapture := nil;
+
   if not (ChessPiece is TKnight) then
   begin
     Result := CheckObstacles(A,B, ChessPiece.White);
@@ -629,7 +634,7 @@ begin
           Piece := FGame.Board[I2][I];
           if (I = BRow) and (I2 = BColumn)
             then Result := Result and ((Piece = nil) or ((Piece <> nil) and (Piece.White <> bWhite)))
-            else Result := Result and (Piece = nil);
+            else Result := Result and  (Piece = nil);
 
         until (I = BRow) and (I2 = BColumn) or not Result;
       end
@@ -752,18 +757,36 @@ var
 begin
   nSquareHeight := Height div 8;
   nSquareWidth  := Width  div 8;
-  if (X < 0) or (X > Width) or (Y > Height) or (Y < 0) then
+  if FFlipped then
   begin
-    Result     := False;
-    Coordinate := a1;
-  end
-  else
-  begin
-    Column := X div nSquareWidth;
-    Row    := (Height - Y) div nSquareHeight;
+    if (X < 0) or (X > Width) or (Y > Height) or (Y < 0) then
+    begin
+      Result     := False;
+      Coordinate := a1;
+    end
+    else
+    begin
+      Column := X div nSquareWidth;
+      Row    := Y div nSquareHeight;
 
-    Coordinate := MapFromRowColumn(Row, Column);
-    Result     := True;
+      Coordinate := MapFromRowColumn(Row, Column);
+      Result     := True;
+    end;
+  end
+  else begin
+    if (X < 0) or (X > Width) or (Y > Height) or (Y < 0) then
+    begin
+      Result     := False;
+      Coordinate := a1;
+    end
+    else
+    begin
+      Column := X div nSquareWidth;
+      Row    := (Height - Y) div nSquareHeight;
+
+      Coordinate := MapFromRowColumn(Row, Column);
+      Result     := True;
+    end;
   end;
 end;
 
@@ -982,7 +1005,6 @@ begin
   end;
 end;
 
-
 function TChessBoard.KingInCheck(bWhite : Boolean) : Boolean;
 begin
   if bWhite
@@ -1006,7 +1028,7 @@ begin
       begin
         var Coordinate : TChessCoordinate;
         Coordinate := TChessCoordinate(I);
-        bCapture := False;
+        bCapture   := False;
         if GetPiece(Coordinate, Captured) then
           bCapture := True;
 
@@ -1037,7 +1059,7 @@ begin
       begin
         var Coordinate : TChessCoordinate;
         Coordinate := TChessCoordinate(I);
-        bCapture := False;
+        bCapture   := False;
         if GetPiece(Coordinate,  Captured) then
           bCapture := True;
 
@@ -1134,7 +1156,6 @@ begin
       // Check if there is a piece in the destination square
       if GetPiece(Coordinate, Piece) then
         bCapture := True;
-
 
       // Check for castles, the game turn and the piece standard moveset
       if (not Castles(Coordinate, FDragPiece)) and (not EnPassant(Coordinate, FDragPiece))
@@ -1255,8 +1276,7 @@ begin
     for Piece in FPieces do
       Piece.Reset;
   end
-  else
-    CreateChessPieces;
+  else CreateChessPieces;
 
   Dispose(FGame);
   New(FGame);
@@ -1266,9 +1286,10 @@ begin
 
   FWhiteTurn := True;
   FFirstMove := True;
-  FMoves := 0;
-  FState := gsNone;
+  FMoves     := 0;
+  FState     := gsNone;
   FAvailableMoves.Clear;
+
   if Assigned(FGameChange) then
     FGameChange(FState);
 
@@ -1296,10 +1317,10 @@ var
 begin
   Result := True;
 
-  WhiteL  := [b1, c1, d1];
-  WhiteS  := [f1, g1];
-  BlackL  := [b8, c8, d8];
-  BlackS  := [f8, g8];
+  WhiteL := [b1, c1, d1];
+  WhiteS := [f1, g1];
+  BlackL := [b8, c8, d8];
+  BlackS := [f8, g8];
 
   if (Piece is TKing) then
   begin
@@ -1309,7 +1330,7 @@ begin
       begin
         for I in WhiteL do
         begin
-          Point := FGame.Board[GetColumn(I)][GetRow(I)];
+          Point  := FGame.Board[GetColumn(I)][GetRow(I)];
           Result := Result and (Point = nil);
 
           Result := Result and not IsSquareAttacked(I, False);
@@ -1318,7 +1339,7 @@ begin
       else begin
         for I in WhiteS do
         begin
-          Point := FGame.Board[GetColumn(I)][GetRow(I)];
+          Point  := FGame.Board[GetColumn(I)][GetRow(I)];
           Result := Result and (Point = nil);
 
           Result := Result and not IsSquareAttacked(I, False);
@@ -1330,7 +1351,7 @@ begin
       begin
         for I in BlackL do
         begin
-          Point := FGame.Board[GetColumn(I)][GetRow(I)];
+          Point  := FGame.Board[GetColumn(I)][GetRow(I)];
           Result := Result and (Point = nil);
 
           Result := Result and not IsSquareAttacked(I, True);
@@ -1339,7 +1360,7 @@ begin
       else begin
         for I in BlackS do
         begin
-          Point := FGame.Board[GetColumn(I)][GetRow(I)];
+          Point  := FGame.Board[GetColumn(I)][GetRow(I)];
           Result := Result and (Point = nil);
 
           Result := Result and not IsSquareAttacked(I, True);

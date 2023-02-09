@@ -56,11 +56,16 @@ type
   end;
   PChessTimeConfig = ^TChessTimeConfig;
 
+  TChessTimeLeft = packed record
+    White : Boolean;
+    Time  : TTime;
+  end;
+  PChessTimeLeft = ^TChessTimeLeft;
+
   TChessPlayer = record
     Moves    : Integer;
     TimeLeft : TTime;
     White    : Boolean;
-    Config   : PChessTimeConfig;
   end;
   PChessPlayer = ^TChessPlayer;
 

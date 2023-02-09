@@ -109,8 +109,8 @@ object MainForm: TMainForm
       object lblConnectionStatus: TLabel
         Left = 1
         Top = 1
-        Width = 5
-        Height = 21
+        Width = 183
+        Height = 37
         Align = alClient
         Alignment = taCenter
         Font.Charset = DEFAULT_CHARSET
@@ -120,6 +120,8 @@ object MainForm: TMainForm
         Font.Style = []
         ParentFont = False
         Layout = tlCenter
+        ExplicitWidth = 5
+        ExplicitHeight = 21
       end
     end
   end
@@ -144,19 +146,16 @@ object MainForm: TMainForm
       Width = 792
       Height = 792
       Align = alClient
-      BevelEdges = []
-      BevelInner = bvNone
-      BevelOuter = bvNone
       Caption = 'cbBoard'
-      Constraints.MaxHeight = 792
-      Constraints.MaxWidth = 792
-      Constraints.MinHeight = 792
-      Constraints.MinWidth = 792
       UseDockManager = False
       DoubleBuffered = True
       ParentBackground = False
       ParentDoubleBuffered = False
       TabOrder = 0
+      ExplicitLeft = 320
+      ExplicitTop = 320
+      ExplicitWidth = 100
+      ExplicitHeight = 41
     end
   end
   object pnl_SidePanel: TPanel
@@ -167,41 +166,11 @@ object MainForm: TMainForm
     Align = alLeft
     Caption = 'pnl_SidePanel'
     TabOrder = 2
-    object Clock_2: TSimpleClock
-      Left = 1
-      Top = 736
-      Width = 183
-      Height = 57
-      Align = alBottom
-      Caption = 'Clock_2'
-      Color = clBtnFace
-      UseDockManager = False
-      DoubleBuffered = True
-      ParentBackground = True
-      ParentColor = False
-      ParentDoubleBuffered = False
-      TabOrder = 0
-    end
-    object Clock_1: TSimpleClock
-      Left = 1
-      Top = 1
-      Width = 183
-      Height = 57
-      Align = alTop
-      Caption = 'Clock_1'
-      Color = clBtnFace
-      UseDockManager = False
-      DoubleBuffered = True
-      ParentBackground = False
-      ParentColor = False
-      ParentDoubleBuffered = False
-      TabOrder = 1
-    end
     object redtMoves: TRichEdit
       Left = 1
-      Top = 58
+      Top = 42
       Width = 183
-      Height = 678
+      Height = 710
       Align = alClient
       Color = clMenuBar
       Font.Charset = ANSI_CHARSET
@@ -211,8 +180,38 @@ object MainForm: TMainForm
       Font.Style = []
       ParentFont = False
       ReadOnly = True
-      TabOrder = 2
+      TabOrder = 0
       Zoom = 100
+      ExplicitTop = 1
+      ExplicitHeight = 792
+    end
+    object Clock_2: TSimpleClock
+      Left = 1
+      Top = 752
+      Width = 183
+      Height = 41
+      Align = alBottom
+      Caption = 'Clock_2'
+      UseDockManager = False
+      ParentBackground = False
+      TabOrder = 1
+      ExplicitLeft = 32
+      ExplicitTop = 720
+      ExplicitWidth = 100
+    end
+    object Clock_1: TSimpleClock
+      Left = 1
+      Top = 1
+      Width = 183
+      Height = 41
+      Align = alTop
+      Caption = 'Clock_1'
+      UseDockManager = False
+      ParentBackground = False
+      TabOrder = 2
+      ExplicitLeft = 80
+      ExplicitTop = 344
+      ExplicitWidth = 100
     end
   end
 end

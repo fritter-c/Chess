@@ -16,18 +16,20 @@ type
   private
     FSocket : TWSocket;
 
-    procedure ProcessMessage(var MsgRec : TMsg);
-    procedure HandleNewMove(var MsgRec : TMsg);
+    procedure ProcessMessage  (var MsgRec : TMsg);
+    procedure HandleNewMove   (var MsgRec : TMsg);
     procedure HandleConnection(var MsgRec : TMsg);
+    procedure HandleSyncClock (var MsgRec : TMsg);
     procedure ConfigureSocket;
-    procedure DataAvaiable(Sender : TObject; Error : Word);
+    procedure DataAvaiable     (Sender : TObject; Error : Word);
     procedure ConnectionChanged(Sender : TObject; OldState, NewState : TSocketState);
     procedure ExecuteDestroy;
-    procedure ProcessNewMove(Data : array of Byte; Size : Integer);
+    procedure ProcessNewMove  (Data : array of Byte; Size : Integer);
+    procedure ProcessSyncClock(Data : array of Byte; Size : Integer);
   public
     constructor Create;
-    destructor Destroy; override;
-    procedure Execute; override;
+    destructor  Destroy; override;
+    procedure   Execute; override;
 
     property Socket : TWSocket read FSocket;
   end;
@@ -44,7 +46,9 @@ uses
   Main,
   ActiveX;
 const
-  c_ClientNewMove = 1;
+  c_ClientNewMove   = 1;
+  c_ClientSyncClock = 2;
+  c_ClientNewGame   = 3;
 constructor TChessClient.Create;
 begin
   inherited Create(False);
@@ -59,8 +63,10 @@ end;
 procedure TChessClient.ProcessMessage(var MsgRec : TMsg);
 begin
   case MsgRec.message of
-    WM_NEW_MOVE : HandleNewMove(MsgRec);
-    WM_CONNECT  : HandleConnection(MsgRec);
+    WM_NEW_MOVE   : HandleNewMove(MsgRec);
+    WM_SYNC_CLOCK : HandleSyncClock(MsgRec);
+
+    WM_CONNECT    : HandleConnection(MsgRec);
   end;
 end;
 
@@ -78,21 +84,20 @@ begin
   Data[1] := Byte(Move.Piece);
   Data[2] := Byte(Move.From);
   Data[3] := Byte(Move.Move);
-  if (FSocket <> nil) and (FSocket.State = wsConnected) then
-    FSocket.Send(@Data[0], Length(Data));
+  if (FSocket <> nil) and (FSocket.State = wsConnected) then FSocket.Send(@Data[0], Length(Data));
 end;
 
 procedure TChessClient.ConfigureSocket;
 begin
-  FSocket.Proto := 'tcp';
+  FSocket.Proto         := 'tcp';
   FSocket.MultiThreaded := True;
-  FSocket.Port := '8080';
-  FSocket.Addr := '127.0.0.1';
-  FSocket.SslContext := TSslContext.Create(nil);
-  FSocket.LineMode  := False;
-  FSocket.OnDataAvailable := DataAvaiable;
+  FSocket.Port          := '8080';
+  FSocket.Addr          := '192.168.15.14';
+  FSocket.SslContext    := TSslContext.Create(nil);
+  FSocket.LineMode      := False;
+  FSocket.OnDataAvailable  := DataAvaiable;
   FSocket.ComponentOptions := [wsoTcpNoDelay];
-  FSocket.OnChangeState := ConnectionChanged;
+  FSocket.OnChangeState    := ConnectionChanged;
 end;
 
 procedure TChessClient.HandleConnection(var MsgRec : TMsg);
@@ -108,8 +113,12 @@ begin
     FSocket.Connect;
   finally
 
-
   end;
+end;
+
+procedure TChessClient.HandleSyncClock(var MsgRec : TMsg);
+begin
+
 end;
 
 procedure TChessClient.DataAvaiable(Sender : TObject; Error : Word);
@@ -127,6 +136,7 @@ procedure TChessClient.ConnectionChanged(Sender : TObject; OldState, NewState : 
 begin
   PostMessage(MainForm.MainHandle, WM_CONNECTIONCHANGED, 0,0);
 end;
+
 procedure TChessClient.Execute;
 var
   MsgRec : TMsg;
@@ -158,19 +168,25 @@ procedure TChessClient.ProcessNewMove(Data : array of Byte; Size : Integer);
 var
   Move : PSimpleChessMove;
 begin
-  new(Move);
+  New(Move);
   with Move^ do
   begin
     Piece := TChessPieceName(Data[1]);
-    From := TChessCoordinate(Data[2]);
-    Move := TChessCoordinate(Data[3]);
+    From  := TChessCoordinate(Data[2]);
+    Move  := TChessCoordinate(Data[3]);
   end;
   PostMessage(MainForm.MainHandle, WM_PROCESS_NEW_MOVE, WPARAM(Move),0);
+end;
+
+procedure TChessClient.ProcessSyncClock(Data : array of Byte; Size : Integer);
+begin
+
 end;
 
 procedure CreateClient;
 begin
   g_ChessClient := TChessClient.Create;
+  g_ChessClient.FreeOnTerminate := True;
 end;
 
 initialization

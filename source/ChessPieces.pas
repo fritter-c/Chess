@@ -42,12 +42,12 @@ type
     FLastPos    : TChessCoordinate;
     FEnPassant  : Boolean;
     FName       : TChessPieceName;
-
     procedure SetInitialPosition(APos : TChessCoordinate);
+
   public
-    constructor Create(bWhite : Boolean); virtual;
+    constructor Create (bWhite : Boolean); virtual;
     function    CanMove(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; virtual; abstract;
-    function    Move(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; virtual;
+    function    Move   (Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; virtual;
     procedure   Reset;
     procedure   Undo;
 
@@ -68,19 +68,19 @@ type
   TKnight = class(TChessPiece)
   public
     constructor Create(bWhite : Boolean); override;
-    function CanMove(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
+    function CanMove  (Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
   end;
 
   TBishop = class(TChessPiece)
   public
     constructor Create(bWhite : Boolean); override;
-    function CanMove(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
+    function CanMove  (Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
   end;
 
   TKing = class(TChessPiece)
   public
     constructor Create(bWhite : Boolean); override;
-    function CanMove(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
+    function CanMove  (Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
     procedure LongCastle;
     procedure ShortCastle;
   end;
@@ -88,7 +88,7 @@ type
   TRook = class(TChessPiece)
   public
     constructor Create(bWhite : Boolean); override;
-    function CanMove(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
+    function CanMove  (Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
     procedure LongCastle;
     procedure ShortCastle;
   end;
@@ -96,14 +96,14 @@ type
   TQueen = class(TChessPiece)
   public
     constructor Create(bWhite : Boolean); override;
-    function CanMove(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
+    function CanMove  (Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
   end;
 
   TPawn = class(TChessPiece)
   public
     constructor Create(bWhite : Boolean); override;
-    function CanMove(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
-    function Move(Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
+    function CanMove  (Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
+    function Move     (Coordinate: TChessCoordinate; bCapture : Boolean = False): Boolean; override;
   end;
 
   function IsOnSameRow     (const A : TChessCoordinate; const B : TChessCoordinate) : Boolean; inline;
@@ -149,8 +149,8 @@ begin
 
   FDragPos.X := -1;
   FDragPos.Y := -1;
-  FDragging := False;
-  FMoves := 0;
+  FDragging  := False;
+  FMoves     := 0;
   inherited Create;
 end;
 
@@ -226,7 +226,7 @@ begin
   BRow    := GetRow(FPosition);
   BColumn := GetColumn(FPosition);
 
-  Result := (Abs(ARow - BRow) <= 1) and (Abs(AColumn - BColumn) <= 1);
+  Result  := (Abs(ARow - BRow) <= 1) and (Abs(AColumn - BColumn) <= 1);
 end;
 
 procedure TKing.LongCastle;
@@ -234,6 +234,7 @@ begin
   if FWhite
   then FPosition := c1
   else FPosition := c8;
+
   Inc(FMoves);
   FMoved := True;
 end;
@@ -296,7 +297,7 @@ end;
 
 function TQueen.CanMove(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
 begin
-  Result := IsOnSameColumn(FPosition, Coordinate) or IsOnSameRow(FPosition, Coordinate) or
+  Result := IsOnSameColumn  (FPosition, Coordinate) or IsOnSameRow(FPosition, Coordinate) or
             IsOnSameDiagonal(FPosition, Coordinate);
 end;
 //Queen//
@@ -318,7 +319,8 @@ end;
 
 function TRook.CanMove(Coordinate: TChessCoordinate; bCapture : Boolean): Boolean;
 begin
-  Result := IsOnSameColumn(FPosition, Coordinate) or IsOnSameRow(FPosition, Coordinate);
+  Result := IsOnSameColumn(FPosition, Coordinate) or
+            IsOnSameRow(FPosition, Coordinate);
 end;
 
 procedure TRook.LongCastle;
@@ -417,6 +419,7 @@ begin
 
   Result := Abs(ColA - ColB) = Abs(RowA - RowB);
 end;
+
 function GetRow (const A : TChessCoordinate) : Integer; inline;
 begin
   case A of
@@ -444,6 +447,7 @@ begin
     Result := 8;
   end;
 end;
+
 function GetColumn (const A : TChessCoordinate) : Integer; inline;
 begin
   case A of

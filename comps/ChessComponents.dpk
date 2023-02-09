@@ -38,7 +38,12 @@ contains
   ChessPieces in '..\source\ChessPieces.pas',
   PromotionForm in '..\source\PromotionForm.pas' {Promotion},
   SimpleClock in 'SimpleClock.pas',
-  ChessGame in '..\source\ChessGame.pas';
+  ChessGame in '..\source\ChessGame.pas',
+  ChessClient in '..\source\ChessClient.pas',
+  ChessMessages in '..\source\ChessMessages.pas',
+  Main in '..\source\Main.pas' {MainForm},
+  ConfigureForm in '..\source\ConfigureForm.pas' {FormConfigure};
 
 end.
+
 

@@ -44,7 +44,7 @@ object FormConfigure: TFormConfigure
     object lblBlack: TLabel
       Left = 0
       Top = 0
-      Width = 316
+      Width = 179
       Height = 35
       Align = alTop
       Caption = 'Black Player'
@@ -55,7 +55,6 @@ object FormConfigure: TFormConfigure
       Font.Style = [fsBold]
       Font.Quality = fqClearType
       ParentFont = False
-      ExplicitWidth = 179
     end
     object lblHoursBlack: TLabel
       Left = 135
@@ -204,7 +203,7 @@ object FormConfigure: TFormConfigure
     object lblWhite: TLabel
       Left = 0
       Top = 0
-      Width = 316
+      Width = 188
       Height = 35
       Align = alTop
       Caption = 'White Player'
@@ -215,7 +214,6 @@ object FormConfigure: TFormConfigure
       Font.Style = [fsBold]
       Font.Quality = fqClearType
       ParentFont = False
-      ExplicitWidth = 188
     end
     object lblHoursWhite: TLabel
       Left = 135
